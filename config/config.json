@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "tpp-sinchi-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/tppSinchi/TppSinchiWebPart.js",
+          "manifest": "./src/webparts/tppSinchi/TppSinchiWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "TppSinchiWebPartStrings": "lib/webparts/tppSinchi/loc/{locale}.js"
+  }
+}

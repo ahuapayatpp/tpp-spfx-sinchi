@@ -1,0 +1,58 @@
+@use '../styles/sinchi-colors' as colors;
+
+.resourceLink {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-radius: 18px;
+  color: colors.$resource-text;
+  background: colors.$resource-background;
+  font-size: 13px;
+  text-decoration: none;
+  transition: background-color 140ms ease;
+
+  &:hover {
+    color: colors.$ink;
+    background: colors.$resource-hover;
+  }
+
+  &:focus-visible {
+    outline: 2px solid colors.$theme-primary;
+    outline-offset: 2px;
+  }
+
+  span {
+    overflow: hidden;
+    flex: 1 1 auto;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.resourceIcon {
+  flex: 0 0 auto;
+  color: colors.$surface-400;
+  font-size: 16px;
+}
+
+.externalIcon {
+  flex: 0 0 auto;
+  color: colors.$primary-500;
+  font-size: 13px;
+}
+
+@media (max-width: 1023px) {
+  .resourceLink {
+    gap: 8px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 767px) {
+  .resourceLink {
+    min-height: 44px;
+  }
+}

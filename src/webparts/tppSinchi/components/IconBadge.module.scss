@@ -1,0 +1,53 @@
+@use '../styles/sinchi-colors' as colors;
+
+.iconBadge {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 22px;
+
+  > i {
+    font-size: 16px;
+  }
+}
+
+.default {
+  color: colors.$surface-700;
+  background: colors.$surface-50;
+}
+
+.info {
+  color: colors.$blue-700;
+  background: colors.$blue-50;
+}
+
+.success {
+  color: colors.$green-700;
+  background: colors.$green-50;
+}
+
+.warning {
+  color: colors.$yellow-800;
+  background: colors.$yellow-50;
+}
+
+.error {
+  color: colors.$red-700;
+  background: colors.$red-50;
+}
+
+.primary {
+  color: colors.$primary-700;
+  background: colors.$primary-50;
+}
+
+.compact {
+  width: 42px;
+  height: 42px;
+  flex-basis: 42px;
+  font-size: 20px;
+}

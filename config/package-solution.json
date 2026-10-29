@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "tpp-spfx-sinchi-client-side-solution",
+    "id": "dc30255c-6f03-4794-be3e-5c6d55d1a92c",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.23.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "TPP Sinchi SharePoint Framework solution"
+      },
+      "longDescription": {
+        "default": "TPP Sinchi SharePoint Framework solution"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "TPP Sinchi Feature",
+        "description": "The feature that activates elements of the TPP Sinchi solution.",
+        "id": "e1fcc04a-9ae9-4621-9eff-ecf5d3cb2ad7",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/tpp-spfx-sinchi.sppkg"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "useGulp": false,
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "24.20.0",
+    "sdksVersions": {},
+    "version": "1.23.2",
+    "libraryName": "tpp-spfx-sinchi",
+    "libraryId": "dc30255c-6f03-4794-be3e-5c6d55d1a92c",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "tpp-spfx-sinchi",
+    "solutionShortDescription": "TPP Sinchi SharePoint Framework solution",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}
