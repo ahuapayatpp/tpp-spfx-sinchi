@@ -1,22 +1,38 @@
 import * as React from 'react';
-import { Icon, Link } from '@fluentui/react';
+import { Icon, Link, TooltipHost } from '@fluentui/react';
 import styles from './ResourceItem.module.scss';
 
 export interface IResourceItemProps {
   name: string;
+  url: string;
+  description?: string;
   iconName: string;
 }
 
-const preventNavigation = (event: React.MouseEvent<HTMLElement>): void => {
-  event.preventDefault();
-};
-
 export default function ResourceItem(props: IResourceItemProps): React.ReactElement {
-  return (
-    <Link className={styles.resourceLink} href="#" onClick={preventNavigation}>
+  const link = (
+    <Link
+      className={styles.resourceLink}
+      href={props.url}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       <Icon className={styles.resourceIcon} iconName={props.iconName} aria-hidden="true" />
       <span>{props.name}</span>
       <Icon className={styles.externalIcon} iconName="OpenInNewWindow" aria-hidden="true" />
     </Link>
+  );
+
+  if (!props.description) {
+    return link;
+  }
+
+  return (
+    <TooltipHost
+      content={<div className={styles.resourceTooltip}>{props.description}</div>}
+      hostClassName={styles.resourceTooltipHost}
+    >
+      {link}
+    </TooltipHost>
   );
 }

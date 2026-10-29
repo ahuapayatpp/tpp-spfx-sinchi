@@ -1,9 +1,12 @@
 import * as React from 'react';
 import {
   createTheme,
+  DefaultButton,
   Icon,
   initializeIcons,
   Link,
+  MessageBar,
+  MessageBarType,
   Persona,
   PersonaSize,
   PrimaryButton,
@@ -12,7 +15,9 @@ import {
 } from '@fluentui/react';
 import styles from './TppSinchi.module.scss';
 import type { ITppSinchiProps } from './ITppSinchiProps';
+import type { IResource } from '../../../services/resourcesService';
 import IconBadge from './IconBadge';
+import LoadingState from './LoadingState';
 import ResourceItem from './ResourceItem';
 import StatusBadge from './StatusBadge';
 import sinchiColors from '../styles/SinchiColors.module.scss';
@@ -53,33 +58,85 @@ const events = [
   { initials: 'MQ', name: 'Martín Quispe', period: '9 nov – 15 nov · 5 días', type: 'Soporte' }
 ];
 
-const resourceGroups = [
-  {
-    title: 'FRONT',
-    resources: [
-      { name: 'portal-ti-web', iconName: 'TVMonitor' },
-      { name: 'design-system-aurum', iconName: 'Code' },
-      { name: 'Figma', iconName: 'Design' },
-      { name: 'Storybook', iconName: 'ReadingMode' }
-    ]
-  },
-  {
-    title: 'BACK',
-    resources: [
-      { name: 'portal-ti-api', iconName: 'TVMonitor' },
-      { name: 'infra-terraform', iconName: 'Settings' },
-      { name: 'Postman', iconName: 'CompassNW' },
-      { name: 'iTop', iconName: 'Server' }
-    ]
-  }
-];
+interface IResourceGroup {
+  title: string;
+  resources: IResource[];
+}
+
+interface ITppSinchiState {
+  resources: IResource[];
+  resourcesStatus: 'loading' | 'error' | 'ready';
+  resourcesError: string;
+}
+
+function groupResources(resources: IResource[]): IResourceGroup[] {
+  const groups = new Map<string, IResource[]>();
+
+  resources.forEach(resource => {
+    const categoryResources = groups.get(resource.category) || [];
+    categoryResources.push(resource);
+    groups.set(resource.category, categoryResources);
+  });
+
+  return Array.from(groups.entries()).map(([title, groupedResources]) => ({
+    title,
+    resources: groupedResources
+  }));
+}
 
 const preventNavigation = (event: React.MouseEvent<HTMLElement>): void => {
   event.preventDefault();
 };
 
-export default class TppSinchi extends React.Component<ITppSinchiProps> {
+export default class TppSinchi extends React.Component<ITppSinchiProps, ITppSinchiState> {
+  public constructor(props: ITppSinchiProps) {
+    super(props);
+    this.state = {
+      resources: [],
+      resourcesStatus: 'loading',
+      resourcesError: ''
+    };
+  }
+
+  private _isMounted: boolean = false;
+
+  public componentDidMount(): void {
+    this._isMounted = true;
+    this._loadResources();
+  }
+
+  public componentWillUnmount(): void {
+    this._isMounted = false;
+  }
+
+  public componentDidUpdate(previousProps: ITppSinchiProps): void {
+    if (previousProps.resourcesService !== this.props.resourcesService) {
+      this._loadResources();
+    }
+  }
+
+  private _loadResources = (): void => {
+    this.setState({ resourcesStatus: 'loading', resourcesError: '' });
+
+    this.props.resourcesService.getResources()
+      .then(resources => {
+        if (this._isMounted) {
+          this.setState({ resources, resourcesStatus: 'ready' });
+        }
+      })
+      .catch(error => {
+        console.error('No se pudieron cargar los recursos de SharePoint.', error);
+        if (this._isMounted) {
+          this.setState({
+            resourcesStatus: 'error',
+            resourcesError: error instanceof Error ? error.message : 'Ocurrió un error inesperado.'
+          });
+        }
+      });
+  };
+
   public render(): React.ReactElement<ITppSinchiProps> {
+    const resourceGroups = groupResources(this.state.resources);
     const displayName = this.props.userDisplayName.trim();
     const currentDate = new Intl.DateTimeFormat('es-PE', {
       weekday: 'long',
@@ -202,20 +259,49 @@ export default class TppSinchi extends React.Component<ITppSinchiProps> {
                 <div className={styles.cardHeader}>
                   <h2>Recursos</h2>
                 </div>
-                <div className={styles.resourceGroups}>
-                  {resourceGroups.map(group => (
-                    <div className={styles.resourceGroup} key={group.title}>
-                      <h3>{group.title}</h3>
-                      <ul className={styles.resourceList}>
-                        {group.resources.map(resource => (
-                          <li key={resource.name}>
-                            <ResourceItem name={resource.name} iconName={resource.iconName} />
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
+                {this.state.resourcesStatus === 'loading' && (
+                  <LoadingState
+                    className={styles.resourceMessage}
+                    label="Cargando recursos..."
+                  />
+                )}
+                {this.state.resourcesStatus === 'error' && (
+                  <MessageBar messageBarType={MessageBarType.error} isMultiline>
+                    No se pudieron cargar los recursos. Verifica que la lista exista y que tengas permisos de lectura.
+                    <p>{this.state.resourcesError}</p>
+                    <DefaultButton
+                      className={styles.resourceRetryButton}
+                      text="Reintentar"
+                      onClick={this._loadResources}
+                    />
+                  </MessageBar>
+                )}
+                {this.state.resourcesStatus === 'ready' && this.state.resources.length === 0 && (
+                  <p className={styles.resourceMessage} role="status">
+                    Aún no hay recursos disponibles.
+                  </p>
+                )}
+                {this.state.resourcesStatus === 'ready' && this.state.resources.length > 0 && (
+                  <div className={styles.resourceGroups}>
+                    {resourceGroups.map(group => (
+                      <div className={styles.resourceGroup} key={group.title}>
+                        <h3>{group.title}</h3>
+                        <ul className={styles.resourceList}>
+                          {group.resources.map(resource => (
+                            <li key={resource.id}>
+                              <ResourceItem
+                                name={resource.name}
+                                url={resource.url}
+                                description={resource.description}
+                                iconName="Link"
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </article>
             </section>
 

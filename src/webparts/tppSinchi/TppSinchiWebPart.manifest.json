@@ -22,7 +22,8 @@
     "description": { "default": "Portal de inicio TPP Sinchi" },
     "officeFabricIconFontName": "Page",
     "properties": {
-      "description": "Portal de inicio TPP Sinchi"
+      "description": "Portal de inicio TPP Sinchi",
+      "resourcesSiteUrl": "https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones"
     }
   }]
 }

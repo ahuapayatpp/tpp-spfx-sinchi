@@ -1,16 +1,27 @@
 @use '../styles/sinchi-colors' as colors;
 
+.resourceTooltipHost {
+  display: block;
+  width: 100%;
+}
+
+.resourceTooltip {
+  max-width: 320px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
 .resourceLink {
   display: flex;
   min-height: 42px;
   align-items: center;
   gap: 12px;
   padding: 0 12px;
-  border-radius: 18px;
+  border-radius: 12px;
   color: colors.$resource-text;
   background: colors.$resource-background;
   font-size: 13px;
-  text-decoration: none;
+  text-decoration: none !important;
   transition: background-color 140ms ease;
 
   &:hover {

@@ -277,6 +277,16 @@
   gap: 18px;
 }
 
+.resourceMessage {
+  margin: 12px 0 0;
+  color: colors.$muted;
+  font-size: 13px;
+}
+
+.resourceRetryButton {
+  margin-top: 8px;
+}
+
 .resourceGroup {
   min-width: 0;
 

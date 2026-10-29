@@ -3,6 +3,8 @@ define([], function() {
     "PropertyPaneDescription": "Description",
     "BasicGroupName": "Group Name",
     "DescriptionFieldLabel": "Description Field",
+    "ResourcesSiteUrlFieldLabel": "Resources SharePoint site URL",
+    "ResourcesSiteUrlFieldDescription": "The SharePoint web that contains the resources list.",
     "AppLocalEnvironmentSharePoint": "The app is running on your local environment as SharePoint web part",
     "AppLocalEnvironmentTeams": "The app is running on your local environment as Microsoft Teams app",
     "AppLocalEnvironmentOffice": "The app is running on your local environment in office.com",

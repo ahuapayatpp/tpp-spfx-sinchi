@@ -10,15 +10,22 @@ import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import * as strings from 'TppSinchiWebPartStrings';
 import TppSinchi from './components/TppSinchi';
 import { ITppSinchiProps } from './components/ITppSinchiProps';
+import type { IResourcesService } from '../../services/resourcesService';
+import { createResourcesService } from '../../services/resourcesServiceFactory';
+
+const DEFAULT_RESOURCES_SITE_URL: string = 'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones';
 
 export interface ITppSinchiWebPartProps {
   description: string;
+  resourcesSiteUrl: string;
 }
 
 export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWebPartProps> {
 
   private _isDarkTheme: boolean = false;
   private _environmentMessage: string = '';
+  private _resourcesService: IResourcesService | undefined;
+  private _resourcesServiceSiteUrl: string = '';
 
   public render(): void {
     const element: React.ReactElement<ITppSinchiProps> = React.createElement(
@@ -27,7 +34,8 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
         description: this.properties.description,
         isDarkTheme: this._isDarkTheme,
         environmentMessage: this._environmentMessage,
-        userDisplayName: this.context.pageContext.user.displayName
+        userDisplayName: this.context.pageContext.user.displayName,
+        resourcesService: this._getResourcesService()
       }
     );
 
@@ -38,6 +46,17 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
     return this._getEnvironmentMessage().then(message => {
       this._environmentMessage = message;
     });
+  }
+
+  private _getResourcesService(): IResourcesService {
+    const siteUrl = (this.properties.resourcesSiteUrl || DEFAULT_RESOURCES_SITE_URL).trim();
+
+    if (!this._resourcesService || this._resourcesServiceSiteUrl !== siteUrl) {
+      this._resourcesService = createResourcesService(this.context, siteUrl);
+      this._resourcesServiceSiteUrl = siteUrl;
+    }
+
+    return this._resourcesService;
   }
 
 
@@ -90,6 +109,10 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
               groupFields: [
                 PropertyPaneTextField('description', {
                   label: strings.DescriptionFieldLabel
+                }),
+                PropertyPaneTextField('resourcesSiteUrl', {
+                  label: strings.ResourcesSiteUrlFieldLabel,
+                  description: strings.ResourcesSiteUrlFieldDescription
                 })
               ]
             }

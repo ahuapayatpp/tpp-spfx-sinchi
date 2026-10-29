@@ -10,6 +10,21 @@ Short summary on functionality and used technologies.
 
 ![version](https://img.shields.io/badge/version-1.23.2-green.svg)
 
+## Recursos de SharePoint
+
+La sección **Recursos** consulta mediante PnPjs la lista en `/sites/SDC-Aplicaciones/Lists/tppsinchi_recursos`. El URL del web que contiene la lista se configura en las propiedades de la web part y tiene como valor inicial `https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones`. La lista debe incluir estas columnas:
+
+| Columna en SharePoint | Nombre usado por la consulta | Tipo | Uso |
+| --- | --- | --- | --- |
+| `Título` | `Title` | Una línea de texto | Nombre mostrado |
+| `url` | `url` | Hipervínculo | Destino del enlace |
+| `descripcion` | `descripcion` | Varias líneas de texto | Tooltip al pasar el cursor o enfocar el recurso |
+| `categoria` | `categoria` | Opción | Grupo bajo el que se muestra el recurso |
+
+La consulta selecciona estos campos y ordena por `Title`. La descripción completa aparece en un tooltip Fluent UI al pasar el cursor o enfocar el vínculo con teclado; si está vacía, no se muestra tooltip.
+
+La web part muestra estados de carga, error con opción de reintento y lista vacía. El indicador está encapsulado en el componente reutilizable `LoadingState` (etiqueta accesible, tamaño opcional y clase CSS personalizable). La persona que la usa necesita permisos de lectura en la lista.
+
 ## Applies to
 
 - [SharePoint Framework](https://aka.ms/spfx)
