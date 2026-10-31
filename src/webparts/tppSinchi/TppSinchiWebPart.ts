@@ -12,6 +12,8 @@ import TppSinchi from './components/TppSinchi';
 import { ITppSinchiProps } from './components/ITppSinchiProps';
 import type { IResourcesService } from '../../services/resourcesService';
 import { createResourcesService } from '../../services/resourcesServiceFactory';
+import type { IActivityService } from '../../services/activityService';
+import { createActivityService } from '../../services/activityServiceFactory';
 
 const DEFAULT_RESOURCES_SITE_URL: string = 'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones';
 
@@ -26,6 +28,8 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
   private _environmentMessage: string = '';
   private _resourcesService: IResourcesService | undefined;
   private _resourcesServiceSiteUrl: string = '';
+  private _activityService: IActivityService | undefined;
+  private _activityServiceSiteUrl: string = '';
 
   public render(): void {
     const element: React.ReactElement<ITppSinchiProps> = React.createElement(
@@ -35,7 +39,8 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
         isDarkTheme: this._isDarkTheme,
         environmentMessage: this._environmentMessage,
         userDisplayName: this.context.pageContext.user.displayName,
-        resourcesService: this._getResourcesService()
+        resourcesService: this._getResourcesService(),
+        activityService: this._getActivityService()
       }
     );
 
@@ -57,6 +62,17 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
     }
 
     return this._resourcesService;
+  }
+
+  private _getActivityService(): IActivityService {
+    const siteUrl = (this.properties.resourcesSiteUrl || DEFAULT_RESOURCES_SITE_URL).trim();
+
+    if (!this._activityService || this._activityServiceSiteUrl !== siteUrl) {
+      this._activityService = createActivityService(this.context, siteUrl);
+      this._activityServiceSiteUrl = siteUrl;
+    }
+
+    return this._activityService;
   }
 
 

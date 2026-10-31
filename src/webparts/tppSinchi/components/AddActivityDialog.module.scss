@@ -1,0 +1,152 @@
+@use '../styles/sinchi-colors' as colors;
+
+.activityPanel {
+  :global(.ms-Panel-main) {
+    max-width: 448px;
+    overflow: hidden;
+    border-radius: 12px 0 0 12px;
+  }
+
+  :global(.ms-Panel-commands) {
+    background: colors.$surface-50;
+    border-bottom: 1px solid colors.$line;
+    padding: 0;
+  }
+
+  :global(.ms-Panel-header) {
+    margin: 0;
+    padding: 16px 22px;
+    background: colors.$surface-50;
+  }
+
+  :global(.ms-Panel-headerText) {
+    color: colors.$ink;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  :global(.ms-Panel-content) {
+    margin: 0;
+    padding: 18px 22px 22px;
+    background: colors.$white;
+  }
+
+  :global(.ms-Panel-footer) {
+    border-top: 1px solid colors.$line;
+    background: colors.$white;
+  }
+
+  :global(.ms-Panel-footerInner) {
+    padding: 0;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.context {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: colors.$surface-50;
+
+  dt {
+    margin-bottom: 3px;
+    color: colors.$muted;
+    font-size: 12px;
+  }
+
+  dd {
+    margin: 0;
+    color: colors.$ink;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 14px 12px;
+}
+
+.hoursSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hoursInput {
+  width: calc((100% - 12px) / 2);
+}
+
+.quickHours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hourButton {
+  min-width: 40px;
+  padding: 0 8px;
+  border-radius: 10px;
+
+  :global(.ms-Button-flexContainer) {
+    justify-content: center;
+  }
+}
+
+.selectedHourButton {
+  border-color: colors.$theme-primary;
+  background: colors.$theme-primary;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 22px;
+  background: colors.$white;
+}
+
+@media (max-width: 480px) {
+  .activityPanel {
+    :global(.ms-Panel-main) {
+      max-width: 100vw;
+      border-radius: 0;
+    }
+
+    :global(.ms-Panel-header) {
+      padding-right: 16px;
+      padding-left: 16px;
+    }
+
+    :global(.ms-Panel-content) {
+      padding: 14px 16px 18px;
+    }
+
+    :global(.ms-Panel-footerInner) {
+      padding: 0;
+    }
+  }
+
+  .fieldGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hoursInput {
+    width: 100%;
+  }
+
+  .actions {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
