@@ -1,6 +1,12 @@
 import type { SPFI } from '@pnp/sp';
 import { getLimaDateOnly, getLimaDateStartUtc } from './activityDate';
-import { escapeODataString, getServerRelativeListUrl } from './sharePointUrl';
+import { escapeODataString, getServerRelativeListUrl } from '../sharepoint/sharePointUrl';
+import type {
+  IActivityCatalogs,
+  IActivityDraft,
+  IActivityOption,
+  IActivityRecord
+} from './activityTypes';
 
 const ACTIVITIES_LIST: string = 'Lists/tpp_actividades';
 const PROCESSES_LIST: string = 'tpp_procesos';
@@ -14,31 +20,6 @@ const ACTIVITY_FIELD: string = 'field_7';
 const DATE_FIELD: string = 'field_8';
 const RESOURCE_FIELD: string = 'field_9';
 const HOURS_FIELD: string = 'field_10';
-
-export interface IActivityOption {
-  key: string;
-  text: string;
-}
-
-export interface IActivityDraft {
-  date: string;
-  responsibleUser: string;
-  activity: string;
-  process: string;
-  project: string;
-  module?: string;
-  hu: string;
-  hours: number;
-}
-
-export interface IActivityRecord extends IActivityDraft {
-  id: number;
-}
-
-export interface IActivityCatalogs {
-  processes: IActivityOption[];
-  projects: IActivityOption[];
-}
 
 export interface IActivityService {
   getCatalogs(): Promise<IActivityCatalogs>;

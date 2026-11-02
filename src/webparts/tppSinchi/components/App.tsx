@@ -17,24 +17,24 @@ import {
   Spinner,
   ThemeProvider
 } from '@fluentui/react';
-import styles from './TppSinchi.module.scss';
+import styles from '../styles/TppSinchi.module.scss';
 import type { ITppSinchiProps } from './ITppSinchiProps';
-import type { IResource } from '../../../services/resourcesService';
-import { getLimaDateOnly } from '../../../services/activityDate';
+import type { IResource } from '../../../services/resources/resourcesService';
+import { getLimaDateOnly } from '../../../services/activities/activityDate';
 import type {
   IActivityCatalogs,
   IActivityDraft,
   IActivityOption,
   IActivityRecord
-} from '../../../services/activityService';
-import { DAILY_HOURS_TARGET } from './activityStatus';
-import { formatActivityDate, formatHours } from './activityFormatting';
-import ActivitiesPage from './ActivitiesPage';
-import AddActivityDialog from './AddActivityDialog';
-import IconBadge from './IconBadge';
-import LoadingState from './LoadingState';
-import ResourceItem from './ResourceItem';
-import StatusBadge from './StatusBadge';
+} from '../../../services/activities/activityTypes';
+import { DAILY_HOURS_TARGET } from '../features/activities/models/activityStatus';
+import { formatActivityDate, formatHours } from '../features/activities/utils/activityFormatting';
+import ActivitiesPage from '../features/activities/pages/ActivitiesPage';
+import AddActivityDialog from '../features/activities/components/AddActivityDialog';
+import IconBadge from '../shared/components/IconBadge/IconBadge';
+import LoadingState from '../shared/components/LoadingState/LoadingState';
+import ResourceItem from '../features/resources/components/ResourceItem';
+import StatusBadge from '../shared/components/StatusBadge/StatusBadge';
 import sinchiColors from '../styles/SinchiColors.module.scss';
 
 initializeIcons();
@@ -155,7 +155,7 @@ const preventNavigation = (event: React.MouseEvent<HTMLElement>): void => {
   event.preventDefault();
 };
 
-export default class TppSinchi extends React.Component<ITppSinchiProps, ITppSinchiState> {
+export default class App extends React.Component<ITppSinchiProps, ITppSinchiState> {
   public constructor(props: ITppSinchiProps) {
     super(props);
     this.state = {

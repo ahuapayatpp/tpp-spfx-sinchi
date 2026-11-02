@@ -11,9 +11,9 @@ import {
   ProgressIndicator,
   TextField
 } from '@fluentui/react';
-import { getLimaDateOnly } from '../../../services/activityDate';
-import type { IActivityDraft, IActivityOption } from '../../../services/activityService';
-import { formatDateInput } from './activityFormatting';
+import { getLimaDateOnly } from '../../../../../services/activities/activityDate';
+import type { IActivityDraft, IActivityOption } from '../../../../../services/activities/activityTypes';
+import { formatDateInput } from '../utils/activityFormatting';
 import styles from './AddActivityDialog.module.scss';
 
 export interface IAddActivityDialogProps {

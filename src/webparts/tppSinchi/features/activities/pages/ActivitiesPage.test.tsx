@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { act, Simulate } from 'react-dom/test-utils';
-import { getLimaDateOnly } from '../../../services/activityDate';
+import { getLimaDateOnly } from '../../../../../services/activities/activityDate';
 import ActivitiesPage, { type IActivitiesPageProps } from './ActivitiesPage';
 
 function createProps(overrides: Partial<IActivitiesPageProps> = {}): IActivitiesPageProps {

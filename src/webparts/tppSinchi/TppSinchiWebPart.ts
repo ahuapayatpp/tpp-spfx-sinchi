@@ -8,12 +8,12 @@ import {
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 
 import * as strings from 'TppSinchiWebPartStrings';
-import TppSinchi from './components/TppSinchi';
+import App from './components/App';
 import { ITppSinchiProps } from './components/ITppSinchiProps';
-import type { IResourcesService } from '../../services/resourcesService';
-import { createResourcesService } from '../../services/resourcesServiceFactory';
-import type { IActivityService } from '../../services/activityService';
-import { createActivityService } from '../../services/activityServiceFactory';
+import type { IResourcesService } from '../../services/resources/resourcesService';
+import { createResourcesService } from '../../services/resources/resourcesServiceFactory';
+import type { IActivityService } from '../../services/activities/activityService';
+import { createActivityService } from '../../services/activities/activityServiceFactory';
 
 const DEFAULT_RESOURCES_SITE_URL: string = 'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones';
 
@@ -33,7 +33,7 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
 
   public render(): void {
     const element: React.ReactElement<ITppSinchiProps> = React.createElement(
-      TppSinchi,
+      App,
       {
         description: this.properties.description,
         isDarkTheme: this._isDarkTheme,

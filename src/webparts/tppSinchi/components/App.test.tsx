@@ -1,5 +1,5 @@
 /* eslint-disable @rushstack/pair-react-dom-render-unmount */
-jest.mock('./AddActivityDialog', () => {
+jest.mock('../features/activities/components/AddActivityDialog', () => {
   const React = jest.requireActual('react') as typeof import('react');
 
   return {
@@ -41,10 +41,11 @@ jest.mock('./AddActivityDialog', () => {
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { act } from 'react-dom/test-utils';
-import type { IResourcesService, IResource } from '../../../services/resourcesService';
-import type { IActivityRecord, IActivityService } from '../../../services/activityService';
+import type { IResourcesService, IResource } from '../../../services/resources/resourcesService';
+import type { IActivityRecord } from '../../../services/activities/activityTypes';
+import type { IActivityService } from '../../../services/activities/activityService';
 import type { ITppSinchiProps } from './ITppSinchiProps';
-import TppSinchi from './TppSinchi';
+import App from './App';
 
 function createActivityService(): IActivityService {
   return {
@@ -90,11 +91,11 @@ describe('TppSinchi resource loading', () => {
 
     try {
       await act(async () => {
-        ReactDOM.render(<TppSinchi {...baseProps} />, container);
+        ReactDOM.render(<App {...baseProps} />, container);
       });
       await act(async () => {
         ReactDOM.render(
-          <TppSinchi {...baseProps} resourcesService={currentResourcesService} />,
+          <App {...baseProps} resourcesService={currentResourcesService} />,
           container
         );
       });
@@ -129,7 +130,7 @@ describe('TppSinchi navigation', () => {
 
     try {
       await act(async () => {
-        ReactDOM.render(<TppSinchi {...props} />, container);
+        ReactDOM.render(<App {...props} />, container);
         await Promise.resolve();
       });
 
@@ -174,7 +175,7 @@ describe('TppSinchi navigation', () => {
 
     try {
       await act(async () => {
-        ReactDOM.render(<TppSinchi {...props} />, container);
+        ReactDOM.render(<App {...props} />, container);
         await Promise.resolve();
       });
 

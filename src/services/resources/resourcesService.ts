@@ -1,5 +1,5 @@
 import type { SPFI } from '@pnp/sp';
-import { getServerRelativeListUrl } from './sharePointUrl';
+import { getServerRelativeListUrl } from '../sharepoint/sharePointUrl';
 
 const RESOURCES_LIST_RELATIVE_URL: string = 'Lists/tppsinchi_recursos';
 const RESOURCE_NAME_FIELD: string = 'Title';

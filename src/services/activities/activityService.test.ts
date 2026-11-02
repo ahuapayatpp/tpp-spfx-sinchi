@@ -1,9 +1,9 @@
 import type { SPFI } from '@pnp/sp';
 import {
   ActivityService,
-  getActivityListPath,
-  type IActivityDraft
+  getActivityListPath
 } from './activityService';
+import type { IActivityDraft } from './activityTypes';
 
 const ACTIVITY: IActivityDraft = {
   date: '2026-10-30',

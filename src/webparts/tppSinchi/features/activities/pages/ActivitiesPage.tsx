@@ -8,19 +8,19 @@ import {
   PrimaryButton,
   ProgressIndicator
 } from '@fluentui/react';
-import type { IActivityRecord } from '../../../services/activityService';
-import { getLimaDateOnly } from '../../../services/activityDate';
+import type { IActivityRecord } from '../../../../../services/activities/activityTypes';
+import { getLimaDateOnly } from '../../../../../services/activities/activityDate';
 import {
   ACTIVITY_DAY_STATUS_LEGEND,
   DAILY_HOURS_TARGET,
   getActivityDayStatus
-} from './activityStatus';
-import type { ActivityDayStatusKey } from './activityStatus';
-import { formatHours, formatLongDate, formatMonth } from './activityFormatting';
-import { getCalendarDays, isWorkDay } from './activityCalendar';
-import LoadingState from './LoadingState';
-import StatusBadge from './StatusBadge';
-import styles from './TppSinchi.module.scss';
+} from '../models/activityStatus';
+import type { ActivityDayStatusKey } from '../models/activityStatus';
+import { formatHours, formatLongDate, formatMonth } from '../utils/activityFormatting';
+import { getCalendarDays, isWorkDay } from '../utils/activityCalendar';
+import LoadingState from '../../../shared/components/LoadingState/LoadingState';
+import StatusBadge from '../../../shared/components/StatusBadge/StatusBadge';
+import styles from '../../../styles/TppSinchi.module.scss';
 
 type ActivityView = 'day' | 'month';
 

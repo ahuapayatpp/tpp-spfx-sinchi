@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styles from './StatusBadge.module.scss';
-
-export type StatusBadgeVariant = 'default' | 'info' | 'success' | 'warning' | 'error';
+import type { StatusBadgeVariant } from '../../types/statusBadge';
 
 export interface IStatusBadgeProps {
   children: React.ReactNode;

@@ -1,5 +1,5 @@
 import type { WebPartContext } from '@microsoft/sp-webpart-base';
-import { createSharePointClient } from './sharePointClient';
+import { createSharePointClient } from '../sharepoint/sharePointClient';
 import {
   ActivityService,
   type IActivityService

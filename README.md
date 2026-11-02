@@ -6,6 +6,17 @@ Short summary on functionality and used technologies.
 
 [picture of the solution in action, if possible]
 
+## Organización del código
+
+- `src/services/sharepoint`: cliente y utilidades comunes para SharePoint.
+- `src/services/activities` y `src/services/resources`: acceso a datos y fábricas de servicios por dominio.
+- `src/webparts/tppSinchi/components`: shell de la aplicación y propiedades de la web part.
+- `src/webparts/tppSinchi/features`: páginas, componentes, modelos y utilidades específicos de cada funcionalidad.
+- `src/webparts/tppSinchi/shared`: componentes y tipos reutilizables entre funcionalidades.
+- `src/webparts/tppSinchi/styles` y `loc`: estilos y localización de la web part.
+
+Las pruebas se mantienen junto a la unidad que validan.
+
 ## Used SharePoint Framework Version
 
 ![version](https://img.shields.io/badge/version-1.23.2-green.svg)

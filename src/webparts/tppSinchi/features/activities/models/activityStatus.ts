@@ -1,4 +1,4 @@
-import type { StatusBadgeVariant } from './StatusBadge';
+import type { StatusBadgeVariant } from '../../../shared/types/statusBadge';
 
 export const DAILY_HOURS_TARGET: number = 8;
 

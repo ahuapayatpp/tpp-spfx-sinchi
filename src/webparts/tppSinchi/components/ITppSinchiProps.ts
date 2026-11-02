@@ -1,5 +1,5 @@
-import type { IResourcesService } from '../../../services/resourcesService';
-import type { IActivityService } from '../../../services/activityService';
+import type { IResourcesService } from '../../../services/resources/resourcesService';
+import type { IActivityService } from '../../../services/activities/activityService';
 
 export interface ITppSinchiProps {
   description: string;
