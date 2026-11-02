@@ -1,5 +1,9 @@
 import type { SPFI } from '@pnp/sp';
-import { ActivityService, getActivityListPath, type IActivityDraft } from './activityService';
+import {
+  ActivityService,
+  getActivityListPath,
+  type IActivityDraft
+} from './activityService';
 
 const ACTIVITY: IActivityDraft = {
   date: '2026-10-30',
@@ -77,6 +81,76 @@ describe('ActivityService', () => {
     expect(query.top).toHaveBeenCalledWith(5000);
   });
 
+  it('loads the selected user activities for a Lima date range', async () => {
+    const query = createCatalogQuery([{
+      Id: 42,
+      field_1: 'Proyecto',
+      field_2: 'TPP UI CORE',
+      field_4: 'tpp-web',
+      field_5: 'HU-12345',
+      field_7: 'Validar el formulario',
+      field_8: '2026-10-30T05:00:00.000Z',
+      field_9: 'Alex User',
+      field_10: 0.25
+    }]).query;
+    const getList = jest.fn().mockReturnValue({ items: query });
+    const service = new ActivityService({ web: { getList } } as unknown as SPFI, 'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones');
+
+    await expect(service.getActivities('Alex User', '2026-10-01', '2026-10-31')).resolves.toEqual([{
+      id: 42,
+      date: '2026-10-30',
+      responsibleUser: 'Alex User',
+      activity: 'Validar el formulario',
+      process: 'Proyecto',
+      project: 'TPP UI CORE',
+      module: 'tpp-web',
+      hu: 'HU-12345',
+      hours: 0.25
+    }]);
+    expect(query.select).toHaveBeenCalledWith(
+      'Id', 'field_1', 'field_2', 'field_4', 'field_5', 'field_7', 'field_8', 'field_9', 'field_10'
+    );
+    expect(query.filter).toHaveBeenCalledWith(
+      "field_9 eq 'Alex User' and field_8 ge datetime'2026-10-01T05:00:00.000Z' and field_8 lt datetime'2026-11-01T05:00:00.000Z'"
+    );
+    expect(query.orderBy).toHaveBeenCalledWith('field_8', true);
+  });
+
+  it('preserves the no-HU marker when reading activities', async () => {
+    const query = createCatalogQuery([{
+      Id: 42,
+      field_1: 'Proyecto',
+      field_2: 'TPP UI CORE',
+      field_4: '',
+      field_5: 'S/HU',
+      field_7: 'Actividad sin HU',
+      field_8: '2026-10-30T05:00:00.000Z',
+      field_9: 'Alex User',
+      field_10: 1
+    }]).query;
+    const service = new ActivityService(
+      { web: { getList: jest.fn().mockReturnValue({ items: query }) } } as unknown as SPFI,
+      'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones'
+    );
+
+    const activities = await service.getActivities('Alex User', '2026-10-01', '2026-10-31');
+
+    expect(activities[0].hu).toBe('S/HU');
+  });
+
+  it('rejects invalid activity query ranges and invalid returned activities', async () => {
+    const query = createCatalogQuery([{ Id: 42, field_10: 1 }]).query;
+    const service = new ActivityService(
+      { web: { getList: jest.fn().mockReturnValue({ items: query }) } } as unknown as SPFI,
+      'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones'
+    );
+
+    await expect(service.getActivities('Alex User', '2026-02-30', '2026-03-01'))
+      .rejects.toThrow('rango de fechas');
+    await expect(service.getActivities('Alex User', '2026-10-01', '2026-10-31'))
+      .rejects.toThrow('datos inválidos');
+  });
+
   it('returns zero when no activities were registered for the day', async () => {
     const query = createCatalogQuery([]).query;
     const sp = { web: { getList: jest.fn().mockReturnValue({ items: query }) } } as unknown as SPFI;
@@ -125,6 +199,54 @@ describe('ActivityService', () => {
       field_10: 1.5,
       field_4: 'tpp-web'
     });
+  });
+
+  it('stores the no-HU marker as text in the existing HU field', async () => {
+    const add = jest.fn().mockResolvedValue({ data: { Id: 42 } });
+    const service = new ActivityService(
+      { web: { getList: jest.fn().mockReturnValue({ items: { add } }) } } as unknown as SPFI,
+      'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones'
+    );
+
+    await expect(service.createActivity({ ...ACTIVITY, hu: 'S/HU' })).resolves.toBeUndefined();
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ field_5: 'S/HU' }));
+  });
+
+  it('accepts quarter-hour values without an explicit upper limit', async () => {
+    const add = jest.fn().mockResolvedValue({ data: { Id: 42 } });
+    const service = new ActivityService(
+      { web: { getList: jest.fn().mockReturnValue({ items: { add } }) } } as unknown as SPFI,
+      'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones'
+    );
+
+    await expect(service.createActivity({ ...ACTIVITY, hours: 0.25 })).resolves.toBeUndefined();
+    await expect(service.createActivity({ ...ACTIVITY, hours: 12.25 })).resolves.toBeUndefined();
+    await expect(service.createActivity({ ...ACTIVITY, hours: 0.3 }))
+      .rejects.toThrow('múltiplos de 0,25');
+    expect(add).toHaveBeenCalledTimes(2);
+  });
+
+  it('updates and deletes only an activity owned by the current user', async () => {
+    const update = jest.fn().mockResolvedValue({});
+    const remove = jest.fn().mockResolvedValue({});
+    const getById = jest.fn((id: number) => ({
+      select: jest.fn().mockReturnValue(() => Promise.resolve({
+        Id: id,
+        field_9: id === 43 ? 'Other User' : 'Alex User'
+      })),
+      update,
+      delete: remove
+    }));
+    const service = new ActivityService(
+      { web: { getList: jest.fn().mockReturnValue({ items: { getById } }) } } as unknown as SPFI,
+      'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones'
+    );
+
+    await expect(service.updateActivity(42, ACTIVITY)).resolves.toBeUndefined();
+    await expect(service.deleteActivity(42, 'Alex User')).resolves.toBeUndefined();
+    await expect(service.updateActivity(43, ACTIVITY)).rejects.toThrow('No se encontró la actividad');
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ field_10: 1.5 }));
+    expect(remove).toHaveBeenCalledTimes(1);
   });
 
   it('rejects invalid form data without writing to SharePoint', async () => {

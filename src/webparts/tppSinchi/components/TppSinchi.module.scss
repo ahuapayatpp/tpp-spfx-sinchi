@@ -329,6 +329,466 @@
   line-height: 1.2;
 }
 
+.activitiesPage {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.activitiesHeader,
+.activityToolbar,
+.activityDateControls,
+.activityViewSwitch,
+.workdaySummaryHeading,
+.activitySectionHeader,
+.activityRecordTitle,
+.activityTotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.activitiesHeader {
+  h1 {
+    margin: 0;
+    color: colors.$ink;
+    font-size: 25px;
+    font-weight: 650;
+    line-height: 1.2;
+  }
+
+  p {
+    margin: 5px 0 0;
+    color: colors.$muted;
+    font-size: 14px;
+  }
+}
+
+.activityToolbar {
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid colors.$line;
+}
+
+.activityDateControls {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.activityDateField {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid colors.$surface-200;
+  border-radius: 4px;
+  background: colors.$white;
+
+  input {
+    max-width: 180px;
+    min-height: 34px;
+    border: 0;
+    color: colors.$ink;
+    background: transparent;
+    font: inherit;
+  }
+
+  &:focus-within {
+    outline: 2px solid colors.$theme-primary;
+    outline-offset: 1px;
+  }
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.activityViewSwitch {
+  gap: 4px;
+  padding: 3px;
+  border-radius: 6px;
+  background: colors.$surface-50;
+}
+
+.activityViewSwitch :global(.ms-Button).viewButton {
+  min-width: 58px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: colors.$surface-600;
+  background: transparent;
+  font-weight: 500;
+
+  &:hover {
+    color: colors.$ink;
+    background: colors.$surface-100;
+  }
+}
+
+.activityViewSwitch :global(.ms-Button).selectedViewButton {
+  border: 1px solid colors.$surface-400;
+  color: colors.$ink;
+  background: colors.$white;
+  font-weight: 600;
+
+  &:hover {
+    color: colors.$ink;
+    background: colors.$white;
+    border-color: colors.$surface-500;
+  }
+
+  &:focus-visible {
+    outline: 2px solid colors.$theme-primary;
+    outline-offset: 2px;
+  }
+}
+
+.activityViewSwitch :global(.ms-Button).viewButton:focus-visible {
+  outline: 2px solid colors.$theme-primary;
+  outline-offset: 2px;
+}
+
+.workdaySummary,
+.activityRecordsSection,
+.monthCalendarSection {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid colors.$line;
+  border-radius: 8px;
+  background: colors.$white;
+}
+
+.workdaySummaryHeading {
+  align-items: flex-start;
+  margin-bottom: 12px;
+
+  h2,
+  p {
+    margin: 0;
+  }
+
+  h2 {
+    color: colors.$ink;
+    font-size: 17px;
+    font-weight: 650;
+    text-transform: capitalize;
+  }
+
+  p {
+    margin-top: 4px;
+    color: colors.$muted;
+    font-size: 13px;
+  }
+
+  strong {
+    color: colors.$ink;
+    font-size: 22px;
+    white-space: nowrap;
+  }
+
+  strong span {
+    color: colors.$muted;
+    font-size: 14px;
+    font-weight: 400;
+  }
+}
+
+.activityRecordsSection {
+  padding: 0;
+  overflow: hidden;
+}
+
+.activitySectionHeader {
+  justify-content: flex-start;
+  padding: 16px 18px;
+  border-bottom: 1px solid colors.$line;
+
+  h2 {
+    margin: 0;
+    color: colors.$ink;
+    font-size: 16px;
+    font-weight: 650;
+  }
+
+  span {
+    min-width: 24px;
+    padding: 2px 7px;
+    border-radius: 12px;
+    color: colors.$surface-700;
+    background: colors.$surface-50;
+    font-size: 12px;
+    text-align: center;
+  }
+}
+
+.activityList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activityRecord {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid colors.$border-subtle;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.activityRecordMain {
+  min-width: 0;
+  flex: 1;
+}
+
+.activityRecordTitle {
+  align-items: flex-start;
+
+  h3 {
+    margin: 0;
+    color: colors.$ink;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  strong {
+    flex: none;
+    color: colors.$ink;
+    white-space: nowrap;
+  }
+}
+
+.activityMetadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+
+  span {
+    padding: 3px 8px;
+    border-radius: 12px;
+    color: colors.$surface-700;
+    background: colors.$surface-50;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+}
+
+.activityActions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.activityTotal {
+  padding: 12px 18px;
+  border-top: 1px solid colors.$line;
+  background: colors.$surface-50;
+  font-weight: 600;
+}
+
+.activityEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 20px;
+  text-align: center;
+
+  > :global(.ms-Icon) {
+    color: colors.$surface-400;
+    font-size: 24px;
+  }
+
+  h3 {
+    margin: 0;
+    color: colors.$ink;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  p {
+    max-width: 420px;
+    margin: 0 0 6px;
+    color: colors.$muted;
+    font-size: 13px;
+  }
+}
+
+.monthSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+
+  article {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border: 1px solid colors.$line;
+    border-radius: 8px;
+    background: colors.$white;
+  }
+
+  span {
+    color: colors.$muted;
+    font-size: 13px;
+  }
+
+  strong {
+    color: colors.$ink;
+    font-size: 21px;
+    font-weight: 650;
+  }
+}
+
+.monthCalendarSection {
+  h2 {
+    margin: 0 0 14px;
+    color: colors.$ink;
+    font-size: 17px;
+    font-weight: 650;
+    text-transform: capitalize;
+  }
+}
+
+.activityCalendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendarWeekday {
+  padding: 4px 0;
+  color: colors.$muted;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.calendarBlank {
+  min-height: 68px;
+}
+
+.calendarDay {
+  display: flex;
+  min-width: 0;
+  min-height: 68px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid colors.$line;
+  border-radius: 6px;
+  color: colors.$ink;
+  background: colors.$white;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    outline: 2px solid colors.$theme-primary;
+    outline-offset: -2px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid colors.$theme-primary;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    color: colors.$surface-400;
+    background: colors.$surface-50;
+    cursor: default;
+  }
+
+  > span {
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  small {
+    color: inherit;
+    font-size: 11px;
+  }
+}
+
+.calendarComplete {
+  border-color: colors.$green-200;
+  color: colors.$green-800;
+  background: colors.$green-50;
+}
+
+.calendarPartial {
+  border-color: colors.$yellow-200;
+  color: colors.$yellow-800;
+  background: colors.$yellow-50;
+}
+
+.calendarMissing {
+  border-color: colors.$red-200;
+  color: colors.$red-800;
+  background: colors.$red-50;
+}
+
+.calendarNonWorkday {
+  color: colors.$surface-500;
+  background: colors.$surface-50;
+}
+
+.calendarToday {
+  box-shadow: inset 0 0 0 1px colors.$theme-primary;
+}
+
+.calendarSelected {
+  outline: 2px solid colors.$surface-700;
+  outline-offset: -2px;
+}
+
+.activityLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 14px;
+  color: colors.$surface-600;
+  font-size: 12px;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  i {
+    width: 12px;
+    height: 12px;
+    border: 1px solid colors.$line;
+    border-radius: 3px;
+  }
+}
+
+.legendStatus {
+  flex: none;
+}
+
+.monthSelectionHint {
+  margin: 12px 0 0;
+  color: colors.$muted;
+  font-size: 12px;
+}
+
 @media (min-width: 1024px) {
   .summaryGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -416,8 +876,103 @@
     gap: 12px;
   }
 
+  .activitiesHeader {
+    align-items: flex-start;
+  }
+
+  .activityToolbar {
+    align-items: flex-start;
+  }
+
+  .workdaySummary,
+  .monthCalendarSection {
+    padding: 14px;
+  }
+
+  .calendarDay {
+    min-height: 58px;
+    padding: 6px;
+  }
+
+  .calendarBlank {
+    min-height: 58px;
+  }
+
+  .monthSummary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .activityRecord {
+    align-items: flex-start;
+    padding: 12px;
+  }
+
 }
 
+@media (max-width: 480px) {
+  .activitiesHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .activitiesHeader > :global(.ms-Button) {
+    align-self: flex-start;
+  }
+
+  .activityToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .activityDateControls {
+    justify-content: space-between;
+  }
+
+  .activityDateField {
+    flex: 1;
+    justify-content: center;
+
+    input {
+      max-width: 100%;
+    }
+  }
+
+  .activityViewSwitch {
+    align-self: flex-start;
+  }
+
+  .workdaySummaryHeading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .activityRecord {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .activityActions {
+    align-self: flex-end;
+  }
+
+  .activityCalendar {
+    gap: 3px;
+  }
+
+  .calendarDay {
+    min-height: 52px;
+    align-items: center;
+    padding: 5px 2px;
+  }
+
+  .calendarDay small {
+    font-size: 10px;
+  }
+
+  .calendarBlank {
+    min-height: 52px;
+  }
+}
 @media (max-width: 420px) {
   .resourceGroups {
     grid-template-columns: minmax(0, 1fr);

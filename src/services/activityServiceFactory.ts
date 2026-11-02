@@ -18,7 +18,10 @@ export function createActivityService(context: WebPartContext, siteUrl: string):
 
   return {
     getCatalogs: () => getService().getCatalogs(),
+    getActivities: (resource, from, to) => getService().getActivities(resource, from, to),
     getDailyHours: (resource, date) => getService().getDailyHours(resource, date),
-    createActivity: activity => getService().createActivity(activity)
+    createActivity: activity => getService().createActivity(activity),
+    updateActivity: (id, activity) => getService().updateActivity(id, activity),
+    deleteActivity: (id, resource) => getService().deleteActivity(id, resource)
   };
 }

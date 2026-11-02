@@ -1,5 +1,5 @@
 import type { SPFI } from '@pnp/sp';
-import { getLimaDateStartUtc } from './activityDate';
+import { getLimaDateOnly, getLimaDateStartUtc } from './activityDate';
 
 const ACTIVITIES_LIST: string = 'Lists/tpp_actividades';
 const PROCESSES_LIST: string = 'tpp_procesos';
@@ -30,6 +30,10 @@ export interface IActivityDraft {
   hours: number;
 }
 
+export interface IActivityRecord extends IActivityDraft {
+  id: number;
+}
+
 export interface IActivityCatalogs {
   processes: IActivityOption[];
   projects: IActivityOption[];
@@ -37,8 +41,11 @@ export interface IActivityCatalogs {
 
 export interface IActivityService {
   getCatalogs(): Promise<IActivityCatalogs>;
+  getActivities(resource: string, from: string, to: string): Promise<IActivityRecord[]>;
   getDailyHours(resource: string, date: string): Promise<number>;
   createActivity(activity: IActivityDraft): Promise<void>;
+  updateActivity(id: number, activity: IActivityDraft): Promise<void>;
+  deleteActivity(id: number, resource: string): Promise<void>;
 }
 
 type IRecord = Record<string, unknown>;
@@ -98,6 +105,9 @@ function validateActivity(activity: IActivityDraft): void {
   if (!isValidDateOnly(activity.date)) {
     throw new Error('La fecha de la actividad no tiene un formato válido.');
   }
+  if (activity.date > getLimaDateOnly()) {
+    throw new Error('La fecha de la actividad no puede ser futura.');
+  }
 
   if (!activity.responsibleUser.trim()) {
     throw new Error('No se pudo identificar al usuario que registra la actividad.');
@@ -111,8 +121,9 @@ function validateActivity(activity: IActivityDraft): void {
     throw new Error('Completa el código HU y la descripción de la actividad.');
   }
 
-  if (!Number.isFinite(activity.hours) || activity.hours < 0.5) {
-    throw new Error('Las horas deben ser un número igual o mayor que 0,5.');
+  if (!Number.isFinite(activity.hours) || activity.hours < 0.25 ||
+      Math.abs(activity.hours * 4 - Math.round(activity.hours * 4)) > 1e-8) {
+    throw new Error('Las horas deben ser múltiplos de 0,25 y no pueden ser menores que 0,25.');
   }
 }
 
@@ -120,6 +131,71 @@ function getDateRangeFilter(date: string): string {
   const startOfDay = getLimaDateStartUtc(date);
   const startOfNextDay = getLimaDateStartUtc(date, 1);
   return `${DATE_FIELD} ge datetime'${startOfDay}' and ${DATE_FIELD} lt datetime'${startOfNextDay}'`;
+}
+
+function getActivitiesDateRangeFilter(from: string, to: string): string {
+  if (!isValidDateOnly(from) || !isValidDateOnly(to) || from > to) {
+    throw new Error('El rango de fechas para consultar actividades no es válido.');
+  }
+
+  const startOfDay = getLimaDateStartUtc(from);
+  const startOfNextDay = getLimaDateStartUtc(to, 1);
+  return `${DATE_FIELD} ge datetime'${startOfDay}' and ${DATE_FIELD} lt datetime'${startOfNextDay}'`;
+}
+
+function mapActivityItems(value: unknown): IActivityRecord[] {
+  if (!Array.isArray(value)) {
+    throw new Error('La lista de actividades devolvió una respuesta inesperada.');
+  }
+
+  return value.map((item: unknown, index: number) => {
+    if (!isRecord(item) || typeof item.Id !== 'number' ||
+        typeof item[RESOURCE_FIELD] !== 'string' ||
+        typeof item[ACTIVITY_FIELD] !== 'string' ||
+        typeof item[PROCESS_FIELD] !== 'string' ||
+        typeof item[PROJECT_FIELD] !== 'string' ||
+        typeof item[HU_FIELD] !== 'string' ||
+        typeof item[DATE_FIELD] !== 'string' ||
+        typeof item[HOURS_FIELD] !== 'number' ||
+        !Number.isFinite(item[HOURS_FIELD]) ||
+        item[HOURS_FIELD] < 0.25 ||
+        Math.abs(item[HOURS_FIELD] * 4 - Math.round(item[HOURS_FIELD] * 4)) > 1e-8) {
+      throw new Error(`La actividad ${index + 1} tiene datos inválidos.`);
+    }
+
+    const activityDate = new Date(item[DATE_FIELD]);
+    if (Number.isNaN(activityDate.getTime())) {
+      throw new Error(`La actividad ${index + 1} tiene una fecha inválida.`);
+    }
+
+    const moduleValue = item[MODULE_FIELD];
+    return {
+      id: item.Id,
+      date: getLimaDateOnly(activityDate),
+      responsibleUser: item[RESOURCE_FIELD],
+      activity: item[ACTIVITY_FIELD],
+      process: item[PROCESS_FIELD],
+      project: item[PROJECT_FIELD],
+      module: typeof moduleValue === 'string' ? moduleValue : '',
+      hu: item[HU_FIELD],
+      hours: item[HOURS_FIELD]
+    };
+  });
+}
+
+function createActivityPayload(activity: IActivityDraft): Record<string, string | number> {
+  const payload: Record<string, string | number> = {
+    [PROCESS_FIELD]: activity.process.trim(),
+    [PROJECT_FIELD]: activity.project.trim(),
+    [MODULE_FIELD]: activity.module ? activity.module.trim() : '',
+    [HU_FIELD]: activity.hu.trim(),
+    [ACTIVITY_FIELD]: activity.activity.trim(),
+    [DATE_FIELD]: getLimaDateStartUtc(activity.date),
+    [RESOURCE_FIELD]: activity.responsibleUser.trim(),
+    [HOURS_FIELD]: activity.hours
+  };
+
+  return payload;
 }
 
 export function getActivityListPath(siteUrl: string): string {
@@ -142,6 +218,24 @@ export class ActivityService implements IActivityService {
       processes: mapCatalogItems(processItems, PROCESSES_LIST),
       projects: mapCatalogItems(projectItems, PROJECTS_LIST)
     };
+  }
+
+  public async getActivities(resource: string, from: string, to: string): Promise<IActivityRecord[]> {
+    const normalizedResource = resource.trim();
+    if (!normalizedResource) {
+      throw new Error('No se pudo identificar al usuario para consultar sus actividades.');
+    }
+
+    const escapedResource = normalizedResource.replace(/'/g, "''");
+    const filter = `${RESOURCE_FIELD} eq '${escapedResource}' and ${getActivitiesDateRangeFilter(from, to)}`;
+    const list = this._sp.web.getList(getActivityListServerRelativeUrl(this._siteUrl));
+    const items: unknown = await list.items
+      .select('Id', PROCESS_FIELD, PROJECT_FIELD, MODULE_FIELD, HU_FIELD, ACTIVITY_FIELD, DATE_FIELD, RESOURCE_FIELD, HOURS_FIELD)
+      .filter(filter)
+      .orderBy(DATE_FIELD, true)
+      .top(5000)();
+
+    return mapActivityItems(items);
   }
 
   public async getDailyHours(resource: string, date: string): Promise<number> {
@@ -172,22 +266,31 @@ export class ActivityService implements IActivityService {
 
   public async createActivity(activity: IActivityDraft): Promise<void> {
     validateActivity(activity);
+    const list = this._sp.web.getList(getActivityListServerRelativeUrl(this._siteUrl));
+    await list.items.add(createActivityPayload(activity));
+  }
 
-    const payload: Record<string, string | number> = {
-      [PROCESS_FIELD]: activity.process.trim(),
-      [PROJECT_FIELD]: activity.project.trim(),
-      [HU_FIELD]: activity.hu.trim(),
-      [ACTIVITY_FIELD]: activity.activity.trim(),
-      [DATE_FIELD]: getLimaDateStartUtc(activity.date),
-      [RESOURCE_FIELD]: activity.responsibleUser.trim(),
-      [HOURS_FIELD]: activity.hours
-    };
+  public async updateActivity(id: number, activity: IActivityDraft): Promise<void> {
+    validateActivity(activity);
+    const list = this._sp.web.getList(getActivityListServerRelativeUrl(this._siteUrl));
+    await this._assertActivityOwner(list, id, activity.responsibleUser);
+    await list.items.getById(id).update(createActivityPayload(activity));
+  }
 
-    if (activity.module && activity.module.trim()) {
-      payload[MODULE_FIELD] = activity.module.trim();
+  public async deleteActivity(id: number, resource: string): Promise<void> {
+    const list = this._sp.web.getList(getActivityListServerRelativeUrl(this._siteUrl));
+    await this._assertActivityOwner(list, id, resource);
+    await list.items.getById(id).delete();
+  }
+
+  private async _assertActivityOwner(list: ReturnType<SPFI['web']['getList']>, id: number, resource: string): Promise<void> {
+    if (!Number.isInteger(id) || id < 1 || !resource.trim()) {
+      throw new Error('No se pudo validar la actividad seleccionada.');
     }
 
-    const list = this._sp.web.getList(getActivityListServerRelativeUrl(this._siteUrl));
-    await list.items.add(payload);
+    const item: unknown = await list.items.getById(id).select('Id', RESOURCE_FIELD)();
+    if (!isRecord(item) || item[RESOURCE_FIELD] !== resource.trim()) {
+      throw new Error('No se encontró la actividad o no tienes permiso para modificarla.');
+    }
   }
 }

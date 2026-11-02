@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Checkbox,
   DefaultButton,
   Dropdown,
   MessageBar,
@@ -16,6 +17,9 @@ import styles from './AddActivityDialog.module.scss';
 
 export interface IAddActivityDialogProps {
   isOpen: boolean;
+  mode: 'create' | 'edit' | 'duplicate';
+  initialActivity?: IActivityDraft;
+  initialDate: string;
   userDisplayName: string;
   processOptions: IActivityOption[];
   projectOptions: IActivityOption[];
@@ -38,7 +42,8 @@ interface IActivityFormState {
   hours: string;
 }
 
-const QUICK_HOURS: number[] = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8];
+const QUICK_HOURS: number[] = [0.25, 0.5, 1, 2, 4, 8];
+const NO_HU_VALUE: string = 'S/HU';
 
 function formatDate(value: string): string {
   const [year, month, day] = value.split('-').map(Number);
@@ -49,37 +54,50 @@ function formatDate(value: string): string {
   }).format(new Date(year, month - 1, day));
 }
 
-function createEmptyForm(): IActivityFormState {
+function createEmptyForm(date: string): IActivityFormState {
   return {
-    date: getLimaDateOnly(),
+    date,
     activity: '',
     process: '',
     project: '',
     module: '',
     hu: '',
-    hours: '1'
+    hours: ''
   };
 }
 
 export default function AddActivityDialog(props: IAddActivityDialogProps): React.ReactElement {
-  const [form, setForm] = React.useState<IActivityFormState>(createEmptyForm);
+  const [form, setForm] = React.useState<IActivityFormState>(() => createEmptyForm(getLimaDateOnly()));
   const [hasSubmitted, setHasSubmitted] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     if (props.isOpen) {
-      setForm(createEmptyForm());
+      const initial = props.initialActivity;
+      setForm(initial ? {
+        date: initial.date,
+        activity: initial.activity,
+        process: initial.process,
+        project: initial.project,
+        module: initial.module || '',
+        hu: initial.hu,
+        hours: props.mode === 'edit' ? String(initial.hours) : ''
+      } : createEmptyForm(props.initialDate));
       setHasSubmitted(false);
     }
-  }, [props.isOpen]);
+  }, [props.isOpen, props.mode, props.initialActivity, props.initialDate]);
 
   const hours = Number(form.hours);
-  const isHoursValid = Number.isFinite(hours) && hours >= 0.5;
+  const isHoursValid = Number.isFinite(hours) && hours >= 0.25 &&
+    Math.abs(hours * 4 - Math.round(hours * 4)) < 1e-8;
+  const isDateValid = /^\d{4}-\d{2}-\d{2}$/.test(form.date) && form.date <= getLimaDateOnly();
   const hasValidForm =
     form.activity.trim().length > 0 &&
     form.process.length > 0 &&
     form.project.length > 0 &&
     form.hu.trim().length > 0 &&
-    isHoursValid;
+    isHoursValid &&
+    isDateValid &&
+    props.userDisplayName.trim().length > 0;
   const canSave =
     hasValidForm &&
     !props.isSaving &&
@@ -122,7 +140,7 @@ export default function AddActivityDialog(props: IAddActivityDialogProps): React
       onDismiss={props.onDismiss}
       type={PanelType.custom}
       customWidth="448px"
-      headerText="Registrar actividad"
+      headerText={props.mode === 'edit' ? 'Editar actividad' : props.mode === 'duplicate' ? 'Duplicar actividad' : 'Registrar actividad'}
       closeButtonAriaLabel="Cerrar"
       isBlocking
       isLightDismiss
@@ -131,9 +149,14 @@ export default function AddActivityDialog(props: IAddActivityDialogProps): React
         <div className={styles.actions}>
           <DefaultButton text="Cancelar" onClick={props.onDismiss} />
           <PrimaryButton
-            text={props.isSaving ? 'Guardando...' : 'Guardar actividad'}
+            text={props.isSaving ? 'Guardando...' : props.mode === 'edit' ? 'Guardar cambios' : 'Guardar actividad'}
             onClick={saveActivity}
-            disabled={!canSave}
+            disabled={
+              props.isSaving ||
+              props.catalogsStatus !== 'ready' ||
+              props.processOptions.length === 0 ||
+              props.projectOptions.length === 0
+            }
           />
         </div>
       )}
@@ -165,16 +188,25 @@ export default function AddActivityDialog(props: IAddActivityDialogProps): React
             {props.saveError}
           </MessageBar>
         )}
-        <dl className={styles.context}>
-          <div>
-            <dt>Fecha</dt>
-            <dd>{formatDate(form.date)}</dd>
-          </div>
-          <div>
-            <dt>Responsable</dt>
-            <dd>{props.userDisplayName.trim() || 'Usuario actual'}</dd>
-          </div>
-        </dl>
+        {!props.userDisplayName.trim() && (
+          <MessageBar messageBarType={MessageBarType.error}>
+            No se pudo identificar tu usuario de SharePoint. Recarga la página e inténtalo nuevamente.
+          </MessageBar>
+        )}
+        <div className={styles.dateResourceGrid}>
+          <TextField
+            label="Fecha"
+            value={formatDate(form.date)}
+            disabled
+            ariaLabel="Fecha de la actividad"
+          />
+          <TextField
+            label="Recurso"
+            value={props.userDisplayName.trim()}
+            disabled
+            ariaLabel="Recurso que registra la actividad"
+          />
+        </div>
 
         <TextField
           label="Actividad"
@@ -216,15 +248,23 @@ export default function AddActivityDialog(props: IAddActivityDialogProps): React
             onChange={(_, value) => setField('module', value || '')}
             disabled={props.isSaving}
           />
-          <TextField
-            label="HU"
-            placeholder="Ej.: HU-12345"
-            required
-            value={form.hu}
-            onChange={(_, value) => setField('hu', value || '')}
-            disabled={props.isSaving}
-            errorMessage={hasSubmitted && !form.hu.trim() ? 'Ingresa la HU.' : undefined}
-          />
+          <div className={styles.huField}>
+            <TextField
+              label="HU"
+              placeholder="Ej.: HU-12345"
+              required={form.hu !== NO_HU_VALUE}
+              value={form.hu === NO_HU_VALUE ? '' : form.hu}
+              onChange={(_, value) => setField('hu', value || '')}
+              disabled={props.isSaving || form.hu === NO_HU_VALUE}
+              errorMessage={hasSubmitted && !form.hu.trim() ? 'Ingresa la HU o selecciona “Sin HU”.' : undefined}
+            />
+            <Checkbox
+              label="Sin HU"
+              checked={form.hu === NO_HU_VALUE}
+              disabled={props.isSaving}
+              onChange={(_, checked) => setField('hu', checked ? NO_HU_VALUE : '')}
+            />
+          </div>
         </div>
 
         <div className={styles.hoursSection}>
@@ -233,13 +273,13 @@ export default function AddActivityDialog(props: IAddActivityDialogProps): React
             label="Horas"
             type="number"
             required
-            min={0.5}
-            step={0.5}
+            min={0.25}
+            step={0.25}
             inputMode="decimal"
             value={form.hours}
             onChange={(_, value) => setField('hours', value || '')}
             disabled={props.isSaving}
-            errorMessage={hasSubmitted && !isHoursValid ? 'Ingresa al menos 0,5 horas.' : undefined}
+            errorMessage={hasSubmitted && !isHoursValid ? 'Ingresa al menos 0,25 h, en incrementos de 0,25 h.' : undefined}
           />
           <div className={styles.quickHours} role="group" aria-label="Horas frecuentes">
             {QUICK_HOURS.map(quickHour => {
