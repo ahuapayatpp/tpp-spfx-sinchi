@@ -44,6 +44,7 @@ import { act } from 'react-dom/test-utils';
 import type { IResourcesService, IResource } from '../../../services/resources/resourcesService';
 import type { IActivityRecord } from '../../../services/activities/activityTypes';
 import type { IActivityService } from '../../../services/activities/activityService';
+import type { IAccessService } from '../../../services/access/accessTypes';
 import type { ITppSinchiProps } from './ITppSinchiProps';
 import App from './App';
 
@@ -55,6 +56,18 @@ function createActivityService(): IActivityService {
     createActivity: () => Promise.resolve(),
     updateActivity: () => Promise.resolve(),
     deleteActivity: () => Promise.resolve()
+  };
+}
+
+function createAccessService(isAdmin: boolean = false): IAccessService {
+  return {
+    getUserAccess: () => Promise.resolve({
+      userId: 7,
+      displayName: 'Alex User',
+      loginName: 'i:0#.f|membership|alex.user@tpperuanos.pe',
+      isAdmin,
+      role: isAdmin ? 'admin' : 'user'
+    })
   };
 }
 
@@ -86,7 +99,8 @@ describe('TppSinchi resource loading', () => {
       environmentMessage: '',
       userDisplayName: 'Alex User',
       resourcesService: oldResourcesService,
-      activityService: createActivityService()
+      activityService: createActivityService(),
+      accessService: createAccessService()
     };
 
     try {
@@ -125,7 +139,8 @@ describe('TppSinchi navigation', () => {
       environmentMessage: '',
       userDisplayName: 'Alex User',
       resourcesService: { getResources: () => Promise.resolve([]) },
-      activityService: createActivityService()
+      activityService: createActivityService(),
+      accessService: createAccessService()
     };
 
     try {
@@ -170,7 +185,8 @@ describe('TppSinchi navigation', () => {
       environmentMessage: '',
       userDisplayName: 'Alex User',
       resourcesService: { getResources: () => Promise.resolve([]) },
-      activityService
+      activityService,
+      accessService: createAccessService()
     };
 
     try {
@@ -213,6 +229,155 @@ describe('TppSinchi navigation', () => {
       expect(container.querySelector<HTMLInputElement>('input[type="date"]')?.value).toBe('2025-01-15');
       expect(container.textContent).toContain('Actividad de prueba');
     } finally {
+      act(() => {
+        ReactDOM.unmountComponentAtNode(container);
+      });
+      container.remove();
+    }
+  });
+});
+
+describe('TppSinchi role access', () => {
+  async function renderApp(props: ITppSinchiProps, container: HTMLElement): Promise<void> {
+    await act(async () => {
+      ReactDOM.render(<App {...props} />, container);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  }
+
+  it('shows the administration menu and page to administrators', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const props: ITppSinchiProps = {
+      description: '',
+      isDarkTheme: false,
+      environmentMessage: '',
+      userDisplayName: 'Alex User',
+      resourcesService: { getResources: () => Promise.resolve([]) },
+      activityService: createActivityService(),
+      accessService: createAccessService(true)
+    };
+
+    try {
+      await renderApp(props, container);
+
+      const navigation = container.querySelector('nav[aria-label="Navegación del portal"]');
+      expect(navigation?.textContent).toContain('Administración');
+      expect(container.querySelector('#adminContent')).toBeNull();
+
+      const adminLink = Array.from(container.querySelectorAll('a'))
+        .find(link => link.textContent?.trim() === 'Administración');
+      expect(adminLink).toBeDefined();
+
+      act(() => {
+        adminLink?.click();
+      });
+
+      expect(container.querySelector('#adminContent')?.textContent).toBe('admin');
+      expect(container.querySelector('a[aria-current="page"]')?.textContent?.trim()).toBe('Administración');
+    } finally {
+      act(() => {
+        ReactDOM.unmountComponentAtNode(container);
+      });
+      container.remove();
+    }
+  });
+
+  it('does not show the administration menu to common users', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const props: ITppSinchiProps = {
+      description: '',
+      isDarkTheme: false,
+      environmentMessage: '',
+      userDisplayName: 'Alex User',
+      resourcesService: { getResources: () => Promise.resolve([]) },
+      activityService: createActivityService(),
+      accessService: createAccessService()
+    };
+
+    try {
+      await renderApp(props, container);
+
+      const navigation = container.querySelector('nav[aria-label="Navegación del portal"]');
+      expect(navigation?.textContent).not.toContain('Administración');
+      expect(container.querySelector('#adminContent')).toBeNull();
+    } finally {
+      act(() => {
+        ReactDOM.unmountComponentAtNode(container);
+      });
+      container.remove();
+    }
+  });
+
+  it('returns to home when the user stops being an administrator', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const props: ITppSinchiProps = {
+      description: '',
+      isDarkTheme: false,
+      environmentMessage: '',
+      userDisplayName: 'Alex User',
+      resourcesService: { getResources: () => Promise.resolve([]) },
+      activityService: createActivityService(),
+      accessService: createAccessService(true)
+    };
+
+    try {
+      await renderApp(props, container);
+
+      const adminLink = Array.from(container.querySelectorAll('a'))
+        .find(link => link.textContent?.trim() === 'Administración');
+      act(() => {
+        adminLink?.click();
+      });
+      expect(container.querySelector('#adminContent')?.textContent).toBe('admin');
+
+      await act(async () => {
+        ReactDOM.render(<App {...props} accessService={createAccessService()} />, container);
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      const navigation = container.querySelector('nav[aria-label="Navegación del portal"]');
+      expect(navigation?.textContent).not.toContain('Administración');
+      expect(container.querySelector('#adminContent')).toBeNull();
+      expect(container.textContent).toContain('Hola, Alex User');
+    } finally {
+      act(() => {
+        ReactDOM.unmountComponentAtNode(container);
+      });
+      container.remove();
+    }
+  });
+
+  it('falls back to a common user when the role cannot be resolved', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const props: ITppSinchiProps = {
+      description: '',
+      isDarkTheme: false,
+      environmentMessage: '',
+      userDisplayName: 'Alex User',
+      resourcesService: { getResources: () => Promise.resolve([]) },
+      activityService: createActivityService(),
+      accessService: { getUserAccess: () => Promise.reject(new Error('Sin acceso')) }
+    };
+
+    try {
+      await renderApp(props, container);
+
+      const navigation = container.querySelector('nav[aria-label="Navegación del portal"]');
+      expect(navigation?.textContent).not.toContain('Administración');
+      expect(container.querySelector('#adminContent')).toBeNull();
+      expect(container.textContent).toContain('Hola, Alex User');
+      expect(consoleError).toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
       act(() => {
         ReactDOM.unmountComponentAtNode(container);
       });

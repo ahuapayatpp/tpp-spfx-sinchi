@@ -4,6 +4,8 @@ declare interface ITppSinchiWebPartStrings {
   DescriptionFieldLabel: string;
   ResourcesSiteUrlFieldLabel: string;
   ResourcesSiteUrlFieldDescription: string;
+  AdminGroupNameFieldLabel: string;
+  AdminGroupNameFieldDescription: string;
   AppLocalEnvironmentSharePoint: string;
   AppLocalEnvironmentTeams: string;
   AppLocalEnvironmentOffice: string;

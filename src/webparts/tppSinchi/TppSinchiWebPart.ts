@@ -14,12 +14,16 @@ import type { IResourcesService } from '../../services/resources/resourcesServic
 import { createResourcesService } from '../../services/resources/resourcesServiceFactory';
 import type { IActivityService } from '../../services/activities/activityService';
 import { createActivityService } from '../../services/activities/activityServiceFactory';
+import type { IAccessService } from '../../services/access/accessTypes';
+import { createAccessService } from '../../services/access/accessServiceFactory';
+import { DEFAULT_ADMIN_GROUP } from '../../services/access/accessService';
 
 const DEFAULT_RESOURCES_SITE_URL: string = 'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones';
 
 export interface ITppSinchiWebPartProps {
   description: string;
   resourcesSiteUrl: string;
+  adminGroupName: string;
 }
 
 export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWebPartProps> {
@@ -30,6 +34,9 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
   private _resourcesServiceSiteUrl: string = '';
   private _activityService: IActivityService | undefined;
   private _activityServiceSiteUrl: string = '';
+  private _accessService: IAccessService | undefined;
+  private _accessServiceSiteUrl: string = '';
+  private _accessServiceAdminGroup: string = '';
 
   public render(): void {
     const element: React.ReactElement<ITppSinchiProps> = React.createElement(
@@ -40,7 +47,8 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
         environmentMessage: this._environmentMessage,
         userDisplayName: this.context.pageContext.user.displayName,
         resourcesService: this._getResourcesService(),
-        activityService: this._getActivityService()
+        activityService: this._getActivityService(),
+        accessService: this._getAccessService()
       }
     );
 
@@ -75,7 +83,22 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
     return this._activityService;
   }
 
+  private _getAccessService(): IAccessService {
+    const siteUrl = (this.properties.resourcesSiteUrl || DEFAULT_RESOURCES_SITE_URL).trim();
+    const adminGroupName = (this.properties.adminGroupName || DEFAULT_ADMIN_GROUP).trim() || DEFAULT_ADMIN_GROUP;
 
+    if (
+      !this._accessService ||
+      this._accessServiceSiteUrl !== siteUrl ||
+      this._accessServiceAdminGroup !== adminGroupName
+    ) {
+      this._accessService = createAccessService(this.context, siteUrl, adminGroupName);
+      this._accessServiceSiteUrl = siteUrl;
+      this._accessServiceAdminGroup = adminGroupName;
+    }
+
+    return this._accessService;
+  }
 
   private _getEnvironmentMessage(): Promise<string> {
     if (!!this.context.sdks.microsoftTeams) { // running in Teams, office.com or Outlook
@@ -129,6 +152,10 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
                 PropertyPaneTextField('resourcesSiteUrl', {
                   label: strings.ResourcesSiteUrlFieldLabel,
                   description: strings.ResourcesSiteUrlFieldDescription
+                }),
+                PropertyPaneTextField('adminGroupName', {
+                  label: strings.AdminGroupNameFieldLabel,
+                  description: strings.AdminGroupNameFieldDescription
                 })
               ]
             }

@@ -9,7 +9,7 @@ Short summary on functionality and used technologies.
 ## Organización del código
 
 - `src/services/sharepoint`: cliente y utilidades comunes para SharePoint.
-- `src/services/activities` y `src/services/resources`: acceso a datos y fábricas de servicios por dominio.
+- `src/services/activities`, `src/services/resources` y `src/services/access`: acceso a datos y fábricas de servicios por dominio.
 - `src/webparts/tppSinchi/components`: shell de la aplicación y propiedades de la web part.
 - `src/webparts/tppSinchi/features`: páginas, componentes, modelos y utilidades específicos de cada funcionalidad.
 - `src/webparts/tppSinchi/shared`: componentes y tipos reutilizables entre funcionalidades.
@@ -35,6 +35,23 @@ La sección **Recursos** consulta mediante PnPjs la lista en `/sites/SDC-Aplicac
 La consulta selecciona estos campos y ordena por `Title`. La descripción completa aparece en un tooltip Fluent UI al pasar el cursor o enfocar el vínculo con teclado; si está vacía, no se muestra tooltip.
 
 La web part muestra estados de carga, error con opción de reintento y lista vacía. El indicador está encapsulado en el componente reutilizable `LoadingState` (etiqueta accesible, tamaño opcional y clase CSS personalizable). La persona que la usa necesita permisos de lectura en la lista.
+
+## Roles y administración
+
+La web part distingue dos perfiles: **usuario común** y **administrador**. El rol se resuelve consultando la pertenencia al grupo de SharePoint configurado en la propiedad **SharePoint administrators group** (`adminGroupName`), cuyo valor inicial es `TPP Sinchi Administradores`.
+
+- Los miembros del grupo ven el menú **Administración** y la página placeholder con el texto `admin`.
+- El resto de usuarios trabaja con Inicio y Actividades.
+- Si el grupo no existe, el nombre está vacío en la configuración o la consulta falla, la web part continúa como usuario común.
+
+### Crear el grupo
+
+1. Abrir el sitio configurado en `resourcesSiteUrl` (por ejemplo `https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones`).
+2. ⚙️ → **Permisos del sitio** → **Configuración de permisos avanzada** → **Crear un grupo**.
+3. Nombre: `TPP Sinchi Administradores`. Agregar a los administradores como miembros.
+4. Si el grupo tiene otro nombre, actualizar la propiedad de la web part. No es necesario recompilar.
+
+> **Importante:** esta comprobación es solo de experiencia de usuario. No sustituye la autorización de SharePoint. Un usuario común todavía puede consultar las listas por REST si tiene permisos sobre ellas. La privacidad de “solo mis actividades” requiere permisos a nivel de elemento y se implementará en una fase posterior.
 
 ## Applies to
 

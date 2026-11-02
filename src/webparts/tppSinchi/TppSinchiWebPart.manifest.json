@@ -23,7 +23,8 @@
     "officeFabricIconFontName": "Page",
     "properties": {
       "description": "Portal de inicio TPP Sinchi",
-      "resourcesSiteUrl": "https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones"
+      "resourcesSiteUrl": "https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones",
+      "adminGroupName": "TPP Sinchi Administradores"
     }
   }]
 }

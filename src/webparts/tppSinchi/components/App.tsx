@@ -27,9 +27,11 @@ import type {
   IActivityOption,
   IActivityRecord
 } from '../../../services/activities/activityTypes';
+import type { IUserAccess } from '../../../services/access/accessTypes';
 import { DAILY_HOURS_TARGET } from '../features/activities/models/activityStatus';
 import { formatActivityDate, formatHours } from '../features/activities/utils/activityFormatting';
 import ActivitiesPage from '../features/activities/pages/ActivitiesPage';
+import AdminPage from '../features/admin/pages/AdminPage';
 import AddActivityDialog from '../features/activities/components/AddActivityDialog';
 import IconBadge from '../shared/components/IconBadge/IconBadge';
 import LoadingState from '../shared/components/LoadingState/LoadingState';
@@ -87,7 +89,10 @@ interface IResourceGroup {
 }
 
 interface ITppSinchiState {
-  currentPage: 'home' | 'activities';
+  currentPage: 'home' | 'activities' | 'admin';
+  access?: IUserAccess;
+  accessStatus: 'loading' | 'error' | 'ready';
+  accessError: string;
   resources: IResource[];
   resourcesStatus: 'loading' | 'error' | 'ready';
   resourcesError: string;
@@ -160,6 +165,8 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
     super(props);
     this.state = {
       currentPage: 'home',
+      accessStatus: 'loading',
+      accessError: '',
       resources: [],
       resourcesStatus: 'loading',
       resourcesError: '',
@@ -187,6 +194,7 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
   }
 
   private _isMounted: boolean = false;
+  private _accessRequestId: number = 0;
   private _resourcesRequestId: number = 0;
   private _activityCatalogRequestId: number = 0;
   private _dailyHoursRequestId: number = 0;
@@ -195,6 +203,7 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
 
   public componentDidMount(): void {
     this._isMounted = true;
+    this._loadAccess();
     this._loadResources();
     this._loadActivityCatalogs();
     this._loadDailyHours();
@@ -202,10 +211,14 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
 
   public componentWillUnmount(): void {
     this._isMounted = false;
+    this._accessRequestId++;
     this._resourcesRequestId++;
   }
 
   public componentDidUpdate(previousProps: ITppSinchiProps): void {
+    if (previousProps.accessService !== this.props.accessService) {
+      this._loadAccess();
+    }
     if (previousProps.resourcesService !== this.props.resourcesService) {
       this._loadResources();
     }
@@ -222,6 +235,40 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
       }
     }
   }
+
+  private _loadAccess = (): void => {
+    const requestId = ++this._accessRequestId;
+    this.setState({ accessStatus: 'loading', accessError: '' });
+
+    Promise.resolve()
+      .then(() => this.props.accessService.getUserAccess())
+      .then(
+        access => {
+          if (this._isMounted && requestId === this._accessRequestId) {
+            const isAdmin = access.isAdmin === true;
+            this.setState(currentState => ({
+              access,
+              accessStatus: 'ready',
+              accessError: '',
+              currentPage: currentState.currentPage === 'admin' && !isAdmin
+                ? 'home'
+                : currentState.currentPage
+            }));
+          }
+        },
+        error => {
+          console.error('No se pudo resolver el rol de administrador de Sinchi.', error);
+          if (this._isMounted && requestId === this._accessRequestId) {
+            this.setState(currentState => ({
+              access: undefined,
+              accessStatus: 'error',
+              accessError: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
+              currentPage: currentState.currentPage === 'admin' ? 'home' : currentState.currentPage
+            }));
+          }
+        }
+      );
+  };
 
   private _loadResources = (): void => {
     const requestId = ++this._resourcesRequestId;
@@ -339,6 +386,13 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
   private _showHome = (event: React.MouseEvent<HTMLElement>): void => {
       event.preventDefault();
       this.setState({ currentPage: 'home' });
+  };
+
+  private _showAdmin = (event: React.MouseEvent<HTMLElement>): void => {
+      event.preventDefault();
+      if (this.state.accessStatus === 'ready' && this.state.access?.isAdmin === true) {
+        this.setState({ currentPage: 'admin' });
+      }
   };
 
   private _changeActivityDate = (date: string, view?: 'day' | 'month'): void => {
@@ -541,6 +595,7 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
     const dailyHoursProgress = Math.min(this.state.dailyHours / DAILY_HOURS_TARGET, 1);
     const remainingHours = Math.max(DAILY_HOURS_TARGET - this.state.dailyHours, 0);
     const extraHours = Math.max(this.state.dailyHours - DAILY_HOURS_TARGET, 0);
+    const isAdmin = this.state.accessStatus === 'ready' && this.state.access?.isAdmin === true;
 
     return (
       <ThemeProvider theme={sinchiTheme}>
@@ -608,10 +663,22 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
             >
               Actividades
             </Link>
+            {isAdmin && (
+              <Link
+                className={`${styles.navigationLink} ${this.state.currentPage === 'admin' ? styles.activeNavigationLink : ''}`}
+                href="#"
+                aria-current={this.state.currentPage === 'admin' ? 'page' : undefined}
+                onClick={this._showAdmin}
+              >
+                Administración
+              </Link>
+            )}
           </nav>
 
           <main className={styles.content}>
-            {this.state.currentPage === 'activities' ? this._renderActivitiesPage() : (
+            {this.state.currentPage === 'admin' && isAdmin ? (
+              <AdminPage />
+            ) : this.state.currentPage === 'activities' ? this._renderActivitiesPage() : (
               <>
             <header className={styles.welcome}>
               <h1>{displayName ? `Hola, ${displayName}` : 'Hola'}</h1>
