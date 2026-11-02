@@ -1,5 +1,6 @@
 import type { SPFI } from '@pnp/sp';
 import { getLimaDateOnly, getLimaDateStartUtc } from './activityDate';
+import { escapeODataString, getServerRelativeListUrl } from './sharePointUrl';
 
 const ACTIVITIES_LIST: string = 'Lists/tpp_actividades';
 const PROCESSES_LIST: string = 'tpp_procesos';
@@ -55,13 +56,11 @@ function isRecord(value: unknown): value is IRecord {
 }
 
 function getActivityListServerRelativeUrl(siteUrl: string): string {
-  const sitePath = new URL(siteUrl.trim()).pathname.replace(/\/+$/, '');
-  return `${sitePath}/${ACTIVITIES_LIST}`;
+  return getServerRelativeListUrl(siteUrl, ACTIVITIES_LIST);
 }
 
 function getCatalogListServerRelativeUrl(siteUrl: string, listName: string): string {
-  const sitePath = new URL(siteUrl.trim()).pathname.replace(/\/+$/, '');
-  return `${sitePath}/Lists/${listName}`;
+  return getServerRelativeListUrl(siteUrl, `Lists/${listName}`);
 }
 
 function mapCatalogItems(value: unknown, listName: string): IActivityOption[] {
@@ -128,9 +127,7 @@ function validateActivity(activity: IActivityDraft): void {
 }
 
 function getDateRangeFilter(date: string): string {
-  const startOfDay = getLimaDateStartUtc(date);
-  const startOfNextDay = getLimaDateStartUtc(date, 1);
-  return `${DATE_FIELD} ge datetime'${startOfDay}' and ${DATE_FIELD} lt datetime'${startOfNextDay}'`;
+  return getDateRangeFilterForRange(date, date);
 }
 
 function getActivitiesDateRangeFilter(from: string, to: string): string {
@@ -138,6 +135,10 @@ function getActivitiesDateRangeFilter(from: string, to: string): string {
     throw new Error('El rango de fechas para consultar actividades no es válido.');
   }
 
+  return getDateRangeFilterForRange(from, to);
+}
+
+function getDateRangeFilterForRange(from: string, to: string): string {
   const startOfDay = getLimaDateStartUtc(from);
   const startOfNextDay = getLimaDateStartUtc(to, 1);
   return `${DATE_FIELD} ge datetime'${startOfDay}' and ${DATE_FIELD} lt datetime'${startOfNextDay}'`;
@@ -226,7 +227,7 @@ export class ActivityService implements IActivityService {
       throw new Error('No se pudo identificar al usuario para consultar sus actividades.');
     }
 
-    const escapedResource = normalizedResource.replace(/'/g, "''");
+    const escapedResource = escapeODataString(normalizedResource);
     const filter = `${RESOURCE_FIELD} eq '${escapedResource}' and ${getActivitiesDateRangeFilter(from, to)}`;
     const list = this._sp.web.getList(getActivityListServerRelativeUrl(this._siteUrl));
     const items: unknown = await list.items
@@ -244,7 +245,7 @@ export class ActivityService implements IActivityService {
       throw new Error('No se pudo identificar al usuario para consultar su jornada.');
     }
 
-    const escapedResource = normalizedResource.replace(/'/g, "''");
+    const escapedResource = escapeODataString(normalizedResource);
     const dateFilter = getDateRangeFilter(date);
     const filter = `${RESOURCE_FIELD} eq '${escapedResource}' and ${dateFilter}`;
     const list = this._sp.web.getList(getActivityListServerRelativeUrl(this._siteUrl));

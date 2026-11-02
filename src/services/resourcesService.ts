@@ -1,4 +1,5 @@
 import type { SPFI } from '@pnp/sp';
+import { getServerRelativeListUrl } from './sharePointUrl';
 
 const RESOURCES_LIST_RELATIVE_URL: string = 'Lists/tppsinchi_recursos';
 const RESOURCE_NAME_FIELD: string = 'Title';
@@ -19,8 +20,7 @@ export interface IResourcesService {
 }
 
 export function getResourcesListServerRelativeUrl(siteUrl: string): string {
-  const sitePath = new URL(siteUrl.trim()).pathname.replace(/\/+$/, '');
-  return `${sitePath}/${RESOURCES_LIST_RELATIVE_URL}`;
+  return getServerRelativeListUrl(siteUrl, RESOURCES_LIST_RELATIVE_URL);
 }
 
 type IRecord = Record<string, unknown>;

@@ -13,6 +13,7 @@ import {
 } from '@fluentui/react';
 import { getLimaDateOnly } from '../../../services/activityDate';
 import type { IActivityDraft, IActivityOption } from '../../../services/activityService';
+import { formatDateInput } from './activityFormatting';
 import styles from './AddActivityDialog.module.scss';
 
 export interface IAddActivityDialogProps {
@@ -44,15 +45,6 @@ interface IActivityFormState {
 
 const QUICK_HOURS: number[] = [0.25, 0.5, 1, 2, 4, 8];
 const NO_HU_VALUE: string = 'S/HU';
-
-function formatDate(value: string): string {
-  const [year, month, day] = value.split('-').map(Number);
-  return new Intl.DateTimeFormat('es-PE', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }).format(new Date(year, month - 1, day));
-}
 
 function createEmptyForm(date: string): IActivityFormState {
   return {
@@ -196,7 +188,7 @@ export default function AddActivityDialog(props: IAddActivityDialogProps): React
         <div className={styles.dateResourceGrid}>
           <TextField
             label="Fecha"
-            value={formatDate(form.date)}
+            value={formatDateInput(form.date)}
             disabled
             ariaLabel="Fecha de la actividad"
           />
