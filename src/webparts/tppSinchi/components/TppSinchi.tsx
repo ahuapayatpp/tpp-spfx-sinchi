@@ -433,6 +433,8 @@ export default class TppSinchi extends React.Component<ITppSinchiProps, ITppSinc
 
     this._activitySaveInProgress = true;
     this.setState({ activitySaving: true, activitySaveError: '' });
+    const shouldNavigateToActivities =
+      this.state.currentPage === 'home' && this.state.activityDialogMode === 'create';
     const save = this.state.activityDialogMode === 'edit' && this.state.editingActivityId
       ? this.props.activityService.updateActivity(this.state.editingActivityId, activity)
       : this.props.activityService.createActivity(activity);
@@ -446,7 +448,9 @@ export default class TppSinchi extends React.Component<ITppSinchiProps, ITppSinc
               activityDialogOpen: false,
               activityInitialDraft: undefined,
               editingActivityId: undefined,
+              currentPage: shouldNavigateToActivities ? 'activities' : this.state.currentPage,
               activityDate: activity.date,
+              activityView: shouldNavigateToActivities ? 'day' : this.state.activityView,
               activityNotice: `La actividad del ${formattedDate} se guardó correctamente.`,
               activitySaveError: '',
               activitySaving: false
@@ -604,8 +608,6 @@ export default class TppSinchi extends React.Component<ITppSinchiProps, ITppSinc
             >
               Actividades
             </Link>
-            <Link className={styles.navigationLink} href="#" onClick={preventNavigation}>Solicitudes</Link>
-            <Link className={styles.navigationLink} href="#" onClick={preventNavigation}>Calendario</Link>
           </nav>
 
           <main className={styles.content}>

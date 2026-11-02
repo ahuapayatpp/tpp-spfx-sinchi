@@ -378,6 +378,7 @@
 
 .activityDateField {
   display: inline-flex;
+  gap: 4px;
   min-height: 36px;
   align-items: center;
   padding: 0 10px;
@@ -385,13 +386,22 @@
   border-radius: 4px;
   background: colors.$white;
 
-  input {
-    max-width: 180px;
+  input,
+  select {
     min-height: 34px;
     border: 0;
     color: colors.$ink;
     background: transparent;
     font: inherit;
+  }
+
+  input {
+    max-width: 180px;
+  }
+
+  select {
+    max-width: 140px;
+    cursor: pointer;
   }
 
   &:focus-within {
@@ -932,7 +942,8 @@
     flex: 1;
     justify-content: center;
 
-    input {
+    input,
+    select {
       max-width: 100%;
     }
   }
