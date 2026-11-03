@@ -5,6 +5,7 @@ import '@pnp/sp/lists/web';
 import '@pnp/sp/items';
 import '@pnp/sp/site-users/web';
 import '@pnp/sp/site-groups/web';
+import '@pnp/sp/sites';
 import type { WebPartContext } from '@microsoft/sp-webpart-base';
 
 export function createSharePointClient(context: WebPartContext, webUrl: string): SPFI {

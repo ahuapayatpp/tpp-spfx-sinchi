@@ -28,9 +28,11 @@ import type {
   IActivityRecord
 } from '../../../services/activities/activityTypes';
 import type { IUserAccess } from '../../../services/access/accessTypes';
+import { getMonthRange, addDateDays, getDateInMonth } from '../features/activities/utils/activityDateRange';
 import { DAILY_HOURS_TARGET } from '../features/activities/models/activityStatus';
 import { formatActivityDate, formatHours } from '../features/activities/utils/activityFormatting';
 import ActivitiesPage from '../features/activities/pages/ActivitiesPage';
+import AdminActivitiesPage from '../features/activities/pages/AdminActivitiesPage';
 import AdminPage from '../features/admin/pages/AdminPage';
 import AddActivityDialog from '../features/activities/components/AddActivityDialog';
 import IconBadge from '../shared/components/IconBadge/IconBadge';
@@ -120,27 +122,6 @@ interface ITppSinchiState {
   deleteActivityError: string;
 }
 
-function dateOnly(year: number, month: number, day: number): string {
-  const formattedMonth = month < 10 ? `0${month}` : `${month}`;
-  const formattedDay = day < 10 ? `0${day}` : `${day}`;
-  return `${year}-${formattedMonth}-${formattedDay}`;
-}
-
-function getMonthRange(date: string): { from: string; to: string } {
-  const [year, month] = date.split('-').map(Number);
-  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  return {
-    from: dateOnly(year, month, 1),
-    to: dateOnly(year, month, lastDay)
-  };
-}
-
-function addDateDays(date: string, days: number): string {
-  const [year, month, day] = date.split('-').map(Number);
-  const result = new Date(Date.UTC(year, month - 1, day + days));
-  return dateOnly(result.getUTCFullYear(), result.getUTCMonth() + 1, result.getUTCDate());
-}
-
 function groupResources(resources: IResource[]): IResourceGroup[] {
   const groups = new Map<string, IResource[]>();
 
@@ -225,12 +206,12 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
     if (previousProps.activityService !== this.props.activityService) {
       this._loadActivityCatalogs();
       this._loadDailyHours();
-      if (this.state.currentPage === 'activities') {
+      if (this.state.currentPage === 'activities' && !this._isCurrentUserAdmin()) {
         this._loadActivities();
       }
     } else if (previousProps.userDisplayName !== this.props.userDisplayName) {
       this._loadDailyHours();
-      if (this.state.currentPage === 'activities') {
+      if (this.state.currentPage === 'activities' && !this._isCurrentUserAdmin()) {
         this._loadActivities();
       }
     }
@@ -253,7 +234,11 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
               currentPage: currentState.currentPage === 'admin' && !isAdmin
                 ? 'home'
                 : currentState.currentPage
-            }));
+            }), () => {
+              if (this.state.currentPage === 'activities' && !isAdmin) {
+                this._loadActivities();
+              }
+            });
           }
         },
         error => {
@@ -264,7 +249,11 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
               accessStatus: 'error',
               accessError: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
               currentPage: currentState.currentPage === 'admin' ? 'home' : currentState.currentPage
-            }));
+            }), () => {
+              if (this.state.currentPage === 'activities') {
+                this._loadActivities();
+              }
+            });
           }
         }
       );
@@ -380,7 +369,11 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
         activityDate: today,
         activityView: 'day',
         activityNotice: ''
-      }, () => this._loadActivities(today));
+      }, () => {
+        if (this.state.accessStatus !== 'loading' && !this._isCurrentUserAdmin()) {
+          this._loadActivities(today);
+        }
+      });
   };
 
   private _showHome = (event: React.MouseEvent<HTMLElement>): void => {
@@ -406,7 +399,8 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
         activityDate: date,
         activityView: view || this.state.activityView
       }, () => {
-        if (currentRange.from !== nextRange.from) {
+        if (currentRange.from !== nextRange.from && this.state.currentPage === 'activities' &&
+            !this._isCurrentUserAdmin()) {
           this._loadActivities(date);
         }
       });
@@ -418,17 +412,12 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
       if (this.state.activityView === 'day') {
         nextDate = addDateDays(current, direction);
       } else {
-        const [year, month, day] = current.split('-').map(Number);
+        const [year, month] = current.split('-').map(Number);
         const shiftedMonth = new Date(Date.UTC(year, month - 1 + direction, 1));
-        const lastDay = new Date(Date.UTC(
+        nextDate = getDateInMonth(
+          current,
           shiftedMonth.getUTCFullYear(),
-          shiftedMonth.getUTCMonth() + 1,
-          0
-        )).getUTCDate();
-        nextDate = dateOnly(
-          shiftedMonth.getUTCFullYear(),
-          shiftedMonth.getUTCMonth() + 1,
-          Math.min(day, lastDay)
+          shiftedMonth.getUTCMonth() + 1
         );
       }
 
@@ -587,6 +576,9 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
     />
   );
 
+  private _isCurrentUserAdmin = (): boolean =>
+    this.state.accessStatus === 'ready' && this.state.access?.isAdmin === true;
+
   public render(): React.ReactElement<ITppSinchiProps> {
     const resourceGroups = groupResources(this.state.resources);
     const displayName = this.props.userDisplayName.trim();
@@ -595,7 +587,7 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
     const dailyHoursProgress = Math.min(this.state.dailyHours / DAILY_HOURS_TARGET, 1);
     const remainingHours = Math.max(DAILY_HOURS_TARGET - this.state.dailyHours, 0);
     const extraHours = Math.max(this.state.dailyHours - DAILY_HOURS_TARGET, 0);
-    const isAdmin = this.state.accessStatus === 'ready' && this.state.access?.isAdmin === true;
+    const isAdmin = this._isCurrentUserAdmin();
 
     return (
       <ThemeProvider theme={sinchiTheme}>
@@ -678,6 +670,18 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
           <main className={styles.content}>
             {this.state.currentPage === 'admin' && isAdmin ? (
               <AdminPage />
+            ) : this.state.currentPage === 'activities' && this.state.accessStatus === 'loading' ? (
+              <LoadingState label="Verificando tu acceso..." />
+            ) : this.state.currentPage === 'activities' && isAdmin ? (
+              <AdminActivitiesPage
+                activityDate={this.state.activityDate}
+                activityView={this.state.activityView}
+                activityService={this.props.activityService}
+                collaboratorService={this.props.collaboratorService}
+                onMovePeriod={this._moveActivityPeriod}
+                onChangeDate={this._changeActivityDate}
+                onChangeView={activityView => this.setState({ activityView })}
+              />
             ) : this.state.currentPage === 'activities' ? this._renderActivitiesPage() : (
               <>
             <header className={styles.welcome}>

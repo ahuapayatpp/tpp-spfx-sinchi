@@ -5,7 +5,8 @@ import type {
   IActivityCatalogs,
   IActivityDraft,
   IActivityOption,
-  IActivityRecord
+  IActivityRecord,
+  ITeamActivityRecord
 } from './activityTypes';
 
 const ACTIVITIES_LIST: string = 'Lists/tpp_actividades';
@@ -20,10 +21,13 @@ const ACTIVITY_FIELD: string = 'field_7';
 const DATE_FIELD: string = 'field_8';
 const RESOURCE_FIELD: string = 'field_9';
 const HOURS_FIELD: string = 'field_10';
+const ID_FIELD: string = 'ID';
+const ID_SELECT_FIELD: string = 'Id';
 
 export interface IActivityService {
   getCatalogs(): Promise<IActivityCatalogs>;
   getActivities(resource: string, from: string, to: string): Promise<IActivityRecord[]>;
+  getTeamActivities(from: string, to: string): Promise<ITeamActivityRecord[]>;
   getDailyHours(resource: string, date: string): Promise<number>;
   createActivity(activity: IActivityDraft): Promise<void>;
   updateActivity(id: number, activity: IActivityDraft): Promise<void>;
@@ -125,44 +129,140 @@ function getDateRangeFilterForRange(from: string, to: string): string {
   return `${DATE_FIELD} ge datetime'${startOfDay}' and ${DATE_FIELD} lt datetime'${startOfNextDay}'`;
 }
 
-function mapActivityItems(value: unknown): IActivityRecord[] {
+function getActivityIdentifier(item: unknown, index: number): string {
+  const id = getActivityId(item);
+  if (id !== undefined) {
+    return `con ID ${id}`;
+  }
+  return `en la posición ${index + 1}`;
+}
+
+function getActivityId(item: unknown): number | undefined {
+  if (!isRecord(item)) {
+    return undefined;
+  }
+
+  for (const value of [item[ID_FIELD], item[ID_SELECT_FIELD], item.id]) {
+    if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) {
+      return value;
+    }
+
+    if (typeof value === 'string' && /^[1-9]\d*$/.test(value.trim())) {
+      const parsed = Number(value.trim());
+      if (Number.isSafeInteger(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function getActivityIdDiagnostic(item: IRecord): string {
+  const typeOf = (key: string): string => {
+    if (!Object.prototype.hasOwnProperty.call(item, key)) {
+      return 'ausente';
+    }
+    const value = item[key];
+    return value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
+  };
+  const keys = Object.keys(item).sort().join(', ') || 'ninguna';
+  return ` Valores recibidos: ID (${typeOf(ID_FIELD)}), Id (${typeOf(ID_SELECT_FIELD)}), id (${typeOf('id')}). Claves del elemento: ${keys}.`;
+}
+
+function getActivityFieldLabel(field: string): string {
+  const labels: Record<string, string> = {
+    [ID_FIELD]: 'ID de SharePoint',
+    [PROCESS_FIELD]: 'Proceso',
+    [PROJECT_FIELD]: 'Proyecto',
+    [MODULE_FIELD]: 'Módulo',
+    [HU_FIELD]: 'HU',
+    [ACTIVITY_FIELD]: 'Actividad',
+    [DATE_FIELD]: 'Fecha',
+    [RESOURCE_FIELD]: 'Responsable',
+    [HOURS_FIELD]: 'Horas'
+  };
+  return labels[field] ? `"${field}" (${labels[field]})` : `"${field}"`;
+}
+
+function getInvalidActivityError(item: unknown, index: number, field?: string): Error {
+  const identifier = getActivityIdentifier(item, index);
+  const detail = field ? ` en el campo ${getActivityFieldLabel(field)}` : '';
+  const diagnostic = field === ID_FIELD && isRecord(item) ? getActivityIdDiagnostic(item) : '';
+  return new Error(`La actividad ${identifier} tiene datos inválidos${detail}.${diagnostic}`);
+}
+
+function getRequiredActivityString(item: IRecord, field: string, index: number): string {
+  const value = item[field];
+  if (typeof value !== 'string') {
+    throw getInvalidActivityError(item, index, field);
+  }
+  return value;
+}
+
+function mapActivityItems(value: unknown, indexOffset: number = 0): IActivityRecord[] {
   if (!Array.isArray(value)) {
     throw new Error('La lista de actividades devolvió una respuesta inesperada.');
   }
 
   return value.map((item: unknown, index: number) => {
-    if (!isRecord(item) || typeof item.Id !== 'number' ||
-        typeof item[RESOURCE_FIELD] !== 'string' ||
-        typeof item[ACTIVITY_FIELD] !== 'string' ||
-        typeof item[PROCESS_FIELD] !== 'string' ||
-        typeof item[PROJECT_FIELD] !== 'string' ||
-        typeof item[HU_FIELD] !== 'string' ||
-        typeof item[DATE_FIELD] !== 'string' ||
-        typeof item[HOURS_FIELD] !== 'number' ||
-        !Number.isFinite(item[HOURS_FIELD]) ||
-        item[HOURS_FIELD] < 0.25 ||
-        Math.abs(item[HOURS_FIELD] * 4 - Math.round(item[HOURS_FIELD] * 4)) > 1e-8) {
-      throw new Error(`La actividad ${index + 1} tiene datos inválidos.`);
+    const itemIndex = index + indexOffset;
+    if (!isRecord(item)) {
+      throw getInvalidActivityError(item, itemIndex);
     }
 
-    const activityDate = new Date(item[DATE_FIELD]);
+    const id = getActivityId(item);
+    if (id === undefined) {
+      throw getInvalidActivityError(item, itemIndex, ID_FIELD);
+    }
+
+    const responsibleUser = getRequiredActivityString(item, RESOURCE_FIELD, itemIndex);
+    const activity = getRequiredActivityString(item, ACTIVITY_FIELD, itemIndex);
+    const process = getRequiredActivityString(item, PROCESS_FIELD, itemIndex);
+    const project = getRequiredActivityString(item, PROJECT_FIELD, itemIndex);
+    const hu = getRequiredActivityString(item, HU_FIELD, itemIndex);
+    const dateValue = getRequiredActivityString(item, DATE_FIELD, itemIndex);
+    const hours = item[HOURS_FIELD];
+    if (typeof hours !== 'number' ||
+        !Number.isFinite(hours) ||
+        hours < 0.25 ||
+        Math.abs(hours * 4 - Math.round(hours * 4)) > 1e-8) {
+      throw getInvalidActivityError(item, itemIndex, HOURS_FIELD);
+    }
+
+    const activityDate = new Date(dateValue);
     if (Number.isNaN(activityDate.getTime())) {
-      throw new Error(`La actividad ${index + 1} tiene una fecha inválida.`);
+      throw getInvalidActivityError(item, itemIndex, DATE_FIELD);
     }
 
     const moduleValue = item[MODULE_FIELD];
     return {
-      id: item.Id,
+      id,
       date: getLimaDateOnly(activityDate),
-      responsibleUser: item[RESOURCE_FIELD],
-      activity: item[ACTIVITY_FIELD],
-      process: item[PROCESS_FIELD],
-      project: item[PROJECT_FIELD],
+      responsibleUser,
+      activity,
+      process,
+      project,
       module: typeof moduleValue === 'string' ? moduleValue : '',
-      hu: item[HU_FIELD],
-      hours: item[HOURS_FIELD]
+      hu,
+      hours
     };
   });
+}
+
+function mapTeamActivityItem(value: unknown, index: number): ITeamActivityRecord {
+  const activity = mapActivityItems([value], index)[0];
+  if (!isRecord(value) || !isRecord(value.Author) || typeof value.Author.Id !== 'number' ||
+      typeof value.Author.Title !== 'string' || !value.Author.Title.trim()) {
+    throw new Error(`No se pudo identificar al autor de la actividad ${getActivityIdentifier(value, index)}.`);
+  }
+
+  return {
+    ...activity,
+    authorId: value.Author.Id,
+    authorName: value.Author.Title.trim(),
+    authorEmail: typeof value.Author.EMail === 'string' ? value.Author.EMail : undefined
+  };
 }
 
 function createActivityPayload(activity: IActivityDraft): Record<string, string | number> {
@@ -212,12 +312,37 @@ export class ActivityService implements IActivityService {
     const filter = `${RESOURCE_FIELD} eq '${escapedResource}' and ${getActivitiesDateRangeFilter(from, to)}`;
     const list = this._sp.web.getList(getActivityListServerRelativeUrl(this._siteUrl));
     const items: unknown = await list.items
-      .select('Id', PROCESS_FIELD, PROJECT_FIELD, MODULE_FIELD, HU_FIELD, ACTIVITY_FIELD, DATE_FIELD, RESOURCE_FIELD, HOURS_FIELD)
+      .select(ID_SELECT_FIELD, PROCESS_FIELD, PROJECT_FIELD, MODULE_FIELD, HU_FIELD, ACTIVITY_FIELD, DATE_FIELD, RESOURCE_FIELD, HOURS_FIELD)
       .filter(filter)
       .orderBy(DATE_FIELD, true)
       .top(5000)();
 
     return mapActivityItems(items);
+  }
+
+  public async getTeamActivities(from: string, to: string): Promise<ITeamActivityRecord[]> {
+    const filter = getActivitiesDateRangeFilter(from, to);
+    const list = this._sp.web.getList(getActivityListServerRelativeUrl(this._siteUrl));
+    const query = list.items
+      .select(ID_SELECT_FIELD, PROCESS_FIELD, PROJECT_FIELD, MODULE_FIELD, HU_FIELD, ACTIVITY_FIELD, DATE_FIELD,
+        RESOURCE_FIELD, HOURS_FIELD, 'Author/Id', 'Author/Title', 'Author/EMail')
+      .expand('Author')
+      .filter(filter)
+      .orderBy(DATE_FIELD, true)
+      .top(5000);
+    const records: ITeamActivityRecord[] = [];
+
+    for await (const page of query) {
+      if (!Array.isArray(page)) {
+        throw new Error('La lista de actividades devolvió una página con formato inesperado.');
+      }
+
+      page.forEach((item: unknown) => {
+        records.push(mapTeamActivityItem(item, records.length));
+      });
+    }
+
+    return records;
   }
 
   public async getDailyHours(resource: string, date: string): Promise<number> {
@@ -270,7 +395,7 @@ export class ActivityService implements IActivityService {
       throw new Error('No se pudo validar la actividad seleccionada.');
     }
 
-    const item: unknown = await list.items.getById(id).select('Id', RESOURCE_FIELD)();
+    const item: unknown = await list.items.getById(id).select(RESOURCE_FIELD)();
     if (!isRecord(item) || item[RESOURCE_FIELD] !== resource.trim()) {
       throw new Error('No se encontró la actividad o no tienes permiso para modificarla.');
     }

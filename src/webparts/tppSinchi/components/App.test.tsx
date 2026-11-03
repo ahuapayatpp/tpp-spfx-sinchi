@@ -45,18 +45,25 @@ import type { IResourcesService, IResource } from '../../../services/resources/r
 import type { IActivityRecord } from '../../../services/activities/activityTypes';
 import type { IActivityService } from '../../../services/activities/activityService';
 import type { IAccessService } from '../../../services/access/accessTypes';
+import type { ITeamActivityRecord } from '../../../services/activities/activityTypes';
+import type { ITeamMember } from '../../../services/collaborators/collaboratorTypes';
 import type { ITppSinchiProps } from './ITppSinchiProps';
 import App from './App';
 
 function createActivityService(): IActivityService {
   return {
     getCatalogs: () => Promise.resolve({ processes: [], projects: [] }),
-    getActivities: () => Promise.resolve([]),
+    getActivities: jest.fn(() => Promise.resolve([])),
+    getTeamActivities: () => Promise.resolve([] as ITeamActivityRecord[]),
     getDailyHours: () => Promise.resolve(0),
     createActivity: () => Promise.resolve(),
     updateActivity: () => Promise.resolve(),
     deleteActivity: () => Promise.resolve()
   };
+}
+
+function createCollaboratorService(members: ITeamMember[] = []): ITppSinchiProps['collaboratorService'] {
+  return { getTeamMembers: () => Promise.resolve(members) };
 }
 
 function createAccessService(isAdmin: boolean = false): IAccessService {
@@ -100,7 +107,8 @@ describe('TppSinchi resource loading', () => {
       userDisplayName: 'Alex User',
       resourcesService: oldResourcesService,
       activityService: createActivityService(),
-      accessService: createAccessService()
+      accessService: createAccessService(),
+      collaboratorService: createCollaboratorService()
     };
 
     try {
@@ -140,7 +148,8 @@ describe('TppSinchi navigation', () => {
       userDisplayName: 'Alex User',
       resourcesService: { getResources: () => Promise.resolve([]) },
       activityService: createActivityService(),
-      accessService: createAccessService()
+      accessService: createAccessService(),
+      collaboratorService: createCollaboratorService()
     };
 
     try {
@@ -186,7 +195,8 @@ describe('TppSinchi navigation', () => {
       userDisplayName: 'Alex User',
       resourcesService: { getResources: () => Promise.resolve([]) },
       activityService,
-      accessService: createAccessService()
+      accessService: createAccessService(),
+      collaboratorService: createCollaboratorService()
     };
 
     try {
@@ -257,7 +267,8 @@ describe('TppSinchi role access', () => {
       userDisplayName: 'Alex User',
       resourcesService: { getResources: () => Promise.resolve([]) },
       activityService: createActivityService(),
-      accessService: createAccessService(true)
+      accessService: createAccessService(true),
+      collaboratorService: createCollaboratorService()
     };
 
     try {
@@ -285,6 +296,55 @@ describe('TppSinchi role access', () => {
     }
   });
 
+  it('shows the team review inside Activities for administrators and keeps Administration', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const activityService = createActivityService();
+    activityService.getTeamActivities = jest.fn(() => Promise.resolve([]));
+    const props: ITppSinchiProps = {
+      description: '',
+      isDarkTheme: false,
+      environmentMessage: '',
+      userDisplayName: 'Admin User',
+      resourcesService: { getResources: () => Promise.resolve([]) },
+      activityService,
+      accessService: createAccessService(true),
+      collaboratorService: createCollaboratorService([{ id: 12, displayName: 'Team User' }])
+    };
+
+    try {
+      await renderApp(props, container);
+      const activitiesLink = Array.from(container.querySelectorAll('a'))
+        .find(link => link.textContent?.trim() === 'Actividades');
+      act(() => { activitiesLink?.click(); });
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(container.querySelector('#adminActivitiesTitle')?.textContent).toBe('Revisión de actividades');
+      expect(container.textContent).toContain('Team User');
+      expect(container.textContent).not.toContain('Registrar actividad');
+      expect(container.querySelector('nav')?.textContent).toContain('Administración');
+      expect(activityService.getTeamActivities).toHaveBeenCalled();
+      expect(activityService.getActivities).not.toHaveBeenCalled();
+
+      const monthButton = Array.from(container.querySelectorAll('button'))
+        .find(button => button.textContent?.trim() === 'Mes');
+      act(() => { monthButton?.click(); });
+      expect(container.querySelector('#adminMonthHeading')?.textContent).toBe('Cumplimiento por persona');
+      const monthCell = container.querySelector<HTMLButtonElement>('button[aria-label^="Team User,"]');
+      expect(monthCell).not.toBeNull();
+      act(() => { monthCell?.click(); });
+      expect(document.body.textContent).toContain('Calendario');
+    } finally {
+      act(() => { ReactDOM.unmountComponentAtNode(container); });
+      container.remove();
+    }
+  });
+
   it('does not show the administration menu to common users', async () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -295,7 +355,8 @@ describe('TppSinchi role access', () => {
       userDisplayName: 'Alex User',
       resourcesService: { getResources: () => Promise.resolve([]) },
       activityService: createActivityService(),
-      accessService: createAccessService()
+      accessService: createAccessService(),
+      collaboratorService: createCollaboratorService()
     };
 
     try {
@@ -322,7 +383,8 @@ describe('TppSinchi role access', () => {
       userDisplayName: 'Alex User',
       resourcesService: { getResources: () => Promise.resolve([]) },
       activityService: createActivityService(),
-      accessService: createAccessService(true)
+      accessService: createAccessService(true),
+      collaboratorService: createCollaboratorService()
     };
 
     try {
@@ -365,7 +427,8 @@ describe('TppSinchi role access', () => {
       userDisplayName: 'Alex User',
       resourcesService: { getResources: () => Promise.resolve([]) },
       activityService: createActivityService(),
-      accessService: { getUserAccess: () => Promise.reject(new Error('Sin acceso')) }
+      accessService: { getUserAccess: () => Promise.reject(new Error('Sin acceso')) },
+      collaboratorService: createCollaboratorService()
     };
 
     try {

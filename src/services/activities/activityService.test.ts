@@ -33,6 +33,34 @@ function createCatalogQuery(items: unknown[]): {
   return { query };
 }
 
+function createPagedQuery(pages: unknown[][]): {
+  query: {
+    select: jest.Mock;
+    expand: jest.Mock;
+    filter: jest.Mock;
+    orderBy: jest.Mock;
+    top: jest.Mock;
+    [Symbol.asyncIterator]: () => { next: () => Promise<{ done: boolean; value: unknown }> };
+  };
+} {
+  let index = 0;
+  const query = {
+    select: jest.fn().mockReturnThis(),
+    expand: jest.fn().mockReturnThis(),
+    filter: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    top: jest.fn().mockReturnThis(),
+    [Symbol.asyncIterator]() {
+      return {
+        next: () => Promise.resolve(index < pages.length
+          ? { done: false, value: pages[index++] }
+          : { done: true, value: undefined })
+      };
+    }
+  };
+  return { query };
+}
+
 describe('ActivityService', () => {
   it('builds the activity list path from the site URL', () => {
     expect(getActivityListPath('https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones/'))
@@ -114,6 +142,132 @@ describe('ActivityService', () => {
       "field_9 eq 'Alex User' and field_8 ge datetime'2026-10-01T05:00:00.000Z' and field_8 lt datetime'2026-11-01T05:00:00.000Z'"
     );
     expect(query.orderBy).toHaveBeenCalledWith('field_8', true);
+  });
+
+  it('loads team activities with their SharePoint authors and paged collection query', async () => {
+    const query = createPagedQuery([[{
+      Id: 84,
+      field_1: 'Proyecto',
+      field_2: 'TPP UI CORE',
+      field_4: 'tpp-web',
+      field_5: 'HU-88',
+      field_7: 'Revisar integración',
+      field_8: '2026-10-30T05:00:00.000Z',
+      field_9: 'Alex User',
+      field_10: 2.5,
+      Author: { Id: 17, Title: 'Alex User', EMail: 'alex.user@tpperuanos.pe' }
+    }], [{
+      Id: 85,
+      field_1: 'Proyecto',
+      field_2: 'TPP UI CORE',
+      field_4: 'tpp-web',
+      field_5: 'HU-89',
+      field_7: 'Validar paginación',
+      field_8: '2026-10-31T05:00:00.000Z',
+      field_9: 'Alex User',
+      field_10: 1,
+      Author: { Id: 17, Title: 'Alex User', EMail: 'alex.user@tpperuanos.pe' }
+    }]]).query;
+    const service = new ActivityService(
+      { web: { getList: jest.fn().mockReturnValue({ items: query }) } } as unknown as SPFI,
+      'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones'
+    );
+
+    await expect(service.getTeamActivities('2026-10-01', '2026-10-31')).resolves.toEqual([{
+      id: 84,
+      date: '2026-10-30',
+      responsibleUser: 'Alex User',
+      activity: 'Revisar integración',
+      process: 'Proyecto',
+      project: 'TPP UI CORE',
+      module: 'tpp-web',
+      hu: 'HU-88',
+      hours: 2.5,
+      authorId: 17,
+      authorName: 'Alex User',
+      authorEmail: 'alex.user@tpperuanos.pe'
+    }, {
+      id: 85,
+      date: '2026-10-31',
+      responsibleUser: 'Alex User',
+      activity: 'Validar paginación',
+      process: 'Proyecto',
+      project: 'TPP UI CORE',
+      module: 'tpp-web',
+      hu: 'HU-89',
+      hours: 1,
+      authorId: 17,
+      authorName: 'Alex User',
+      authorEmail: 'alex.user@tpperuanos.pe'
+    }]);
+    expect(query.select).toHaveBeenCalledWith(
+      'Id', 'field_1', 'field_2', 'field_4', 'field_5', 'field_7', 'field_8',
+      'field_9', 'field_10', 'Author/Id', 'Author/Title', 'Author/EMail'
+    );
+    expect(query.expand).toHaveBeenCalledWith('Author');
+    expect(query.filter).toHaveBeenCalledWith(
+      "field_8 ge datetime'2026-10-01T05:00:00.000Z' and field_8 lt datetime'2026-11-01T05:00:00.000Z'"
+    );
+    expect(query.top).toHaveBeenCalledWith(5000);
+  });
+
+  it('identifies the SharePoint item and field for invalid team activities', async () => {
+    const query = createPagedQuery([[{
+      ID: '84',
+      field_1: 'Proyecto',
+      field_2: 'TPP UI CORE',
+      field_4: 'tpp-web',
+      field_5: 'HU-88',
+      field_7: 'Revisar integración',
+      field_8: '2026-10-30T05:00:00.000Z',
+      field_9: 'Alex User',
+      field_10: '2.5',
+      Author: { Id: 17, Title: 'Alex User', EMail: 'alex.user@tpperuanos.pe' }
+    }]]).query;
+    const service = new ActivityService(
+      { web: { getList: jest.fn().mockReturnValue({ items: query }) } } as unknown as SPFI,
+      'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones'
+    );
+
+    await expect(service.getTeamActivities('2026-10-01', '2026-10-31'))
+      .rejects.toThrow(/ID 84 tiene datos inválidos en el campo "field_10" \(Horas\)/);
+  });
+
+  it('rejects team activities without a valid SharePoint item ID', async () => {
+    const query = createPagedQuery([[{
+      field_1: 'Proyecto',
+      field_2: 'TPP UI CORE',
+      field_4: 'tpp-web',
+      field_5: 'HU-88',
+      field_7: 'Revisar integración',
+      field_8: '2026-10-30T05:00:00.000Z',
+      field_9: 'Alex User',
+      field_10: 2.5,
+      Author: { Id: 17, Title: 'Alex User', EMail: 'alex.user@tpperuanos.pe' }
+    }]]).query;
+    const service = new ActivityService(
+      { web: { getList: jest.fn().mockReturnValue({ items: query }) } } as unknown as SPFI,
+      'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones'
+    );
+
+    await expect(service.getTeamActivities('2026-10-01', '2026-10-31'))
+      .rejects.toThrow(/actividad en la posición 1 tiene datos inválidos en el campo "ID" \(ID de SharePoint\)\. Valores recibidos: ID \(ausente\), Id \(ausente\), id \(ausente\)\. Claves del elemento: Author, field_1/);
+  });
+
+  it('rejects team activities without a SharePoint author', async () => {
+    const query = createPagedQuery([[{
+      Id: 84,
+      field_1: 'Proyecto', field_2: 'TPP UI CORE', field_4: '', field_5: 'HU-88',
+      field_7: 'Revisar integración', field_8: '2026-10-30T05:00:00.000Z',
+      field_9: 'Alex User', field_10: 1
+    }]]).query;
+    const service = new ActivityService(
+      { web: { getList: jest.fn().mockReturnValue({ items: query }) } } as unknown as SPFI,
+      'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones'
+    );
+
+    await expect(service.getTeamActivities('2026-10-01', '2026-10-31'))
+      .rejects.toThrow('identificar al autor');
   });
 
   it('preserves the no-HU marker when reading activities', async () => {

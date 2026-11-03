@@ -9,7 +9,7 @@ Short summary on functionality and used technologies.
 ## Organización del código
 
 - `src/services/sharepoint`: cliente y utilidades comunes para SharePoint.
-- `src/services/activities`, `src/services/resources` y `src/services/access`: acceso a datos y fábricas de servicios por dominio.
+- `src/services/activities`, `src/services/resources`, `src/services/access` y `src/services/collaborators`: acceso a datos y fábricas de servicios por dominio.
 - `src/webparts/tppSinchi/components`: shell de la aplicación y propiedades de la web part.
 - `src/webparts/tppSinchi/features`: páginas, componentes, modelos y utilidades específicos de cada funcionalidad.
 - `src/webparts/tppSinchi/shared`: componentes y tipos reutilizables entre funcionalidades.
@@ -36,22 +36,17 @@ La consulta selecciona estos campos y ordena por `Title`. La descripción comple
 
 La web part muestra estados de carga, error con opción de reintento y lista vacía. El indicador está encapsulado en el componente reutilizable `LoadingState` (etiqueta accesible, tamaño opcional y clase CSS personalizable). La persona que la usa necesita permisos de lectura en la lista.
 
-## Roles y administración
+## Roles y revisión de actividades
 
-La web part distingue dos perfiles: **usuario común** y **administrador**. El rol se resuelve consultando la pertenencia al grupo de SharePoint configurado en la propiedad **SharePoint administrators group** (`adminGroupName`), cuyo valor inicial es `TPP Sinchi Administradores`.
+La web part distingue **usuarios comunes** y **administradores** usando la pertenencia al grupo de SharePoint configurado en `adminGroupName` (inicialmente `TPP Sinchi Administradores`). Los administradores conservan la pestaña **Administración** y, además, al abrir **Actividades** ven la revisión del equipo. Los usuarios comunes continúan viendo **Mis actividades**.
 
-- Los miembros del grupo ven el menú **Administración** y la página placeholder con el texto `admin`.
-- El resto de usuarios trabaja con Inicio y Actividades.
-- Si el grupo no existe, el nombre está vacío en la configuración o la consulta falla, la web part continúa como usuario común.
+La lista de personas que se revisa se obtiene de los miembros del grupo de Microsoft 365 asociado al sitio SharePoint, que corresponde a los **Miembros** del sitio. Los indicadores incluyen sus miembros aunque no hayan registrado actividades. Las actividades se asocian a esas personas por correo electrónico/UPN; el GUID de Graph no se confunde con el ID numérico del usuario en SharePoint. Si hay registros de personas que no pertenecen al grupo, se muestran identificadas como externas. Si no se puede consultar el grupo, se avisa que los indicadores son parciales y se omiten los conteos de ausencias.
 
-### Crear el grupo
+La solución solicita el permiso delegado de Microsoft Graph `GroupMember.ReadBasic.All` para listar los miembros básicos del grupo. Después de publicar el paquete, un administrador debe aprobar esta solicitud en el Centro de administración de SharePoint, en **Más características > API access**. Hasta que se conceda el consentimiento, la lista de personas no estará disponible y la revisión mostrará el aviso de información parcial.
 
-1. Abrir el sitio configurado en `resourcesSiteUrl` (por ejemplo `https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones`).
-2. ⚙️ → **Permisos del sitio** → **Configuración de permisos avanzada** → **Crear un grupo**.
-3. Nombre: `TPP Sinchi Administradores`. Agregar a los administradores como miembros.
-4. Si el grupo tiene otro nombre, actualizar la propiedad de la web part. No es necesario recompilar.
+La revisión del equipo es de solo lectura y ofrece vistas de día y mes, búsqueda, filtros, detalle por persona y exportación CSV compatible con Excel. En esta fase solo sábados y domingos se consideran no laborables; no se aplica un calendario de feriados.
 
-> **Importante:** esta comprobación es solo de experiencia de usuario. No sustituye la autorización de SharePoint. Un usuario común todavía puede consultar las listas por REST si tiene permisos sobre ellas. La privacidad de “solo mis actividades” requiere permisos a nivel de elemento y se implementará en una fase posterior.
+> **Importante:** el rol de la app controla qué interfaz se muestra, pero no sustituye los permisos de SharePoint. La privacidad de “cada usuario ve solo sus actividades” requiere permisos por elemento y se implementará en una fase posterior.
 
 ## Applies to
 

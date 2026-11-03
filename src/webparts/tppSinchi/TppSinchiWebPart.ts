@@ -17,6 +17,8 @@ import { createActivityService } from '../../services/activities/activityService
 import type { IAccessService } from '../../services/access/accessTypes';
 import { createAccessService } from '../../services/access/accessServiceFactory';
 import { DEFAULT_ADMIN_GROUP } from '../../services/access/accessService';
+import type { ICollaboratorService } from '../../services/collaborators/collaboratorTypes';
+import { createCollaboratorService } from '../../services/collaborators/collaboratorServiceFactory';
 
 const DEFAULT_RESOURCES_SITE_URL: string = 'https://tpperuanos.sharepoint.com/sites/SDC-Aplicaciones';
 
@@ -37,6 +39,8 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
   private _accessService: IAccessService | undefined;
   private _accessServiceSiteUrl: string = '';
   private _accessServiceAdminGroup: string = '';
+  private _collaboratorService: ICollaboratorService | undefined;
+  private _collaboratorServiceSiteUrl: string = '';
 
   public render(): void {
     const element: React.ReactElement<ITppSinchiProps> = React.createElement(
@@ -48,7 +52,8 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
         userDisplayName: this.context.pageContext.user.displayName,
         resourcesService: this._getResourcesService(),
         activityService: this._getActivityService(),
-        accessService: this._getAccessService()
+        accessService: this._getAccessService(),
+        collaboratorService: this._getCollaboratorService()
       }
     );
 
@@ -98,6 +103,17 @@ export default class TppSinchiWebPart extends BaseClientSideWebPart<ITppSinchiWe
     }
 
     return this._accessService;
+  }
+
+  private _getCollaboratorService(): ICollaboratorService {
+    const siteUrl = (this.properties.resourcesSiteUrl || DEFAULT_RESOURCES_SITE_URL).trim();
+
+    if (!this._collaboratorService || this._collaboratorServiceSiteUrl !== siteUrl) {
+      this._collaboratorService = createCollaboratorService(this.context, siteUrl);
+      this._collaboratorServiceSiteUrl = siteUrl;
+    }
+
+    return this._collaboratorService;
   }
 
   private _getEnvironmentMessage(): Promise<string> {

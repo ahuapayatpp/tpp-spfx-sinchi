@@ -18,6 +18,12 @@ export interface IActivityRecord extends IActivityDraft {
   id: number;
 }
 
+export interface ITeamActivityRecord extends IActivityRecord {
+  authorId: number;
+  authorName: string;
+  authorEmail?: string;
+}
+
 export interface IActivityCatalogs {
   processes: IActivityOption[];
   projects: IActivityOption[];
