@@ -40,10 +40,10 @@ export default function AdminMonthReview(props: IAdminMonthReviewProps): React.R
   const today = getLimaDateOnly();
   const searched = props.rows.filter(row => normalized(row.person.displayName).includes(normalized(props.search.trim())));
   const counts = {
-    all: searched.length,
     pending: searched.filter(row => row.person.isInTeamGroup && row.status === 'pending').length,
     complete: searched.filter(row => row.person.isInTeamGroup && row.status === 'complete').length
   };
+  const teamCount = searched.filter(row => row.person.isInTeamGroup).length;
   const rows = searched
     .filter(row => filter === 'all' || (row.person.isInTeamGroup && row.status === filter))
     .sort((left, right) => {
@@ -99,17 +99,29 @@ export default function AdminMonthReview(props: IAdminMonthReviewProps): React.R
           <h2 id="adminMonthHeading">Cumplimiento por persona</h2>
           <p>Selecciona un día de la matriz para consultar sus actividades.</p>
         </div>
-        <div className={styles.adminExportActions}>
-          <DefaultButton text="Actividades CSV" iconProps={{ iconName: 'Download' }} onClick={props.onExportActivities} />
-          <DefaultButton text="Resumen CSV" iconProps={{ iconName: 'Download' }} onClick={props.onExportSummary} disabled={!props.rosterAvailable} />
-        </div>
       </div>
 
       <div className={styles.adminKpis} aria-label={`Resumen de ${props.date.slice(0, 7)}`}>
-        <article className={`${styles.adminKpi} ${styles.kpiSuccess}`}>
-          <span>Al día</span><strong>{props.rosterAvailable ? props.summary.onTrack : '—'}<small> / {props.rosterAvailable ? props.rows.filter(row => row.person.isInTeamGroup).length : '—'}</small></strong>
-        </article>
-        <article className={`${styles.adminKpi} ${styles.kpiWarning}`}><span>Con pendientes</span><strong>{props.rosterAvailable ? props.summary.withPending : '—'}</strong></article>
+        <button
+          type="button"
+          className={`${styles.adminKpi} ${styles.adminKpiFilter} ${styles.kpiSuccess} ${filter === 'complete' ? styles.adminKpiSelected : ''}`}
+          aria-label={`Filtrar por cumplimiento: Al día (${counts.complete})`}
+          aria-pressed={filter === 'complete'}
+          disabled={!props.rosterAvailable}
+          onClick={() => setFilter(filter === 'complete' ? 'all' : 'complete')}
+        >
+          <span>Al día</span><strong>{props.rosterAvailable ? counts.complete : '—'}<small> / {props.rosterAvailable ? teamCount : '—'}</small></strong>
+        </button>
+        <button
+          type="button"
+          className={`${styles.adminKpi} ${styles.adminKpiFilter} ${styles.kpiWarning} ${filter === 'pending' ? styles.adminKpiSelected : ''}`}
+          aria-label={`Filtrar por cumplimiento: Con pendientes (${counts.pending})`}
+          aria-pressed={filter === 'pending'}
+          disabled={!props.rosterAvailable}
+          onClick={() => setFilter(filter === 'pending' ? 'all' : 'pending')}
+        >
+          <span>Con pendientes</span><strong>{props.rosterAvailable ? counts.pending : '—'}</strong>
+        </button>
         <article className={styles.adminKpi}><span>Cumplimiento promedio</span><strong>{props.rosterAvailable ? `${Math.round(props.summary.averagePercentage * 100)}%` : '—'}</strong></article>
         <article className={styles.adminKpi}><span>Horas registradas</span><strong>{formatHours(props.summary.hours)}<small> / {props.rosterAvailable ? `${formatHours(props.summary.expectedHours)} h` : '—'}</small></strong></article>
       </div>
@@ -123,18 +135,24 @@ export default function AdminMonthReview(props: IAdminMonthReviewProps): React.R
           onChange={(_, value) => props.onSearchChange(value || '')}
           onClear={() => props.onSearchChange('')}
         />
-        <div className={styles.adminFilterChips} role="group" aria-label="Filtrar por cumplimiento">
-          {props.rosterAvailable && ([
-            ['all', 'Todos'], ['pending', 'Con pendientes'], ['complete', 'Al día']
-          ] as Array<[MonthFilter, string]>).map(([key, label]) => (
-            <DefaultButton
-              key={key}
-              className={`${styles.adminFilterChip} ${filter === key ? styles.adminFilterActive : ''}`}
-              text={`${label} ${counts[key]}`}
-              aria-pressed={filter === key}
-              onClick={() => setFilter(key)}
-            />
-          ))}
+        <div className={styles.adminFilterActions}>
+          {filter !== 'all' && (
+            <>
+              <span className={styles.adminActiveFilter}>Filtro: {filter === 'pending' ? 'Con pendientes' : 'Al día'}</span>
+              <button type="button" className={styles.adminClearFilter} onClick={() => setFilter('all')}>Ver todos</button>
+            </>
+          )}
+          <DefaultButton
+            text="Descargar"
+            iconProps={{ iconName: 'Download' }}
+            menuProps={{
+              ariaLabel: 'Opciones de descarga',
+              items: [
+                { key: 'activities', text: 'Actividades CSV', onClick: props.onExportActivities },
+                { key: 'summary', text: 'Resumen CSV', disabled: !props.rosterAvailable, onClick: props.onExportSummary }
+              ]
+            }}
+          />
           <DefaultButton
             className={styles.adminFilterChip}
             text="Ordenar por pendientes"

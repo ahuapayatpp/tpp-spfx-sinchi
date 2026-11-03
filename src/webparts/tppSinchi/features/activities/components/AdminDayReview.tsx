@@ -60,6 +60,7 @@ export default function AdminDayReview(props: IAdminDayReviewProps): React.React
     complete: searchRows.filter(row => row.person.isInTeamGroup && row.status.key === 'complete').length,
     nonWorkday: searchRows.filter(row => row.status.key === 'nonWorkday').length
   };
+  const teamCount = searchRows.filter(row => row.person.isInTeamGroup).length;
   const rows = searchRows
     .filter(row => !workday || filter === 'all' || (row.person.isInTeamGroup && row.status.key === filter))
     .sort((left, right) => {
@@ -76,6 +77,13 @@ export default function AdminDayReview(props: IAdminDayReviewProps): React.React
       return (comparison || left.person.displayName.localeCompare(right.person.displayName, 'es')) *
         (sortAscending ? 1 : -1);
     });
+  const filterLabels: Record<DayFilter, string> = {
+    all: 'Todos',
+    missing: 'Sin registro',
+    incomplete: 'Incompletos',
+    complete: 'Completos',
+    nonWorkday: 'No laborable'
+  };
 
   const sort = (key: SortKey): void => {
     if (sortKey === key) {
@@ -124,27 +132,39 @@ export default function AdminDayReview(props: IAdminDayReviewProps): React.React
           <h2 id="adminDayHeading">Equipo del día</h2>
           <p>Revisa el avance y abre el detalle para consultar sus actividades.</p>
         </div>
-        <div className={styles.adminExportActions}>
-          <DefaultButton text="Actividades CSV" iconProps={{ iconName: 'Download' }} onClick={props.onExportActivities} />
-          <DefaultButton
-            text="Resumen CSV"
-            iconProps={{ iconName: 'Download' }}
-            onClick={props.onExportSummary}
-            disabled={!props.rosterAvailable}
-          />
-        </div>
       </div>
 
       {workday && <div className={styles.adminKpis} aria-label="Resumen de la jornada">
-        <article className={`${styles.adminKpi} ${styles.kpiSuccess}`}>
-          <span>Completos</span><strong>{props.rosterAvailable ? props.summary.complete : '—'}<small> / {props.rosterAvailable ? props.rows.filter(row => row.person.isInTeamGroup).length : '—'}</small></strong>
-        </article>
-        <article className={`${styles.adminKpi} ${styles.kpiWarning}`}>
-          <span>Incompletos</span><strong>{props.rosterAvailable ? props.summary.incomplete : '—'}</strong>
-        </article>
-        <article className={`${styles.adminKpi} ${styles.kpiError}`}>
-          <span>Sin registro</span><strong>{props.rosterAvailable ? props.summary.missing : '—'}</strong>
-        </article>
+        <button
+          type="button"
+          className={`${styles.adminKpi} ${styles.adminKpiFilter} ${styles.kpiSuccess} ${filter === 'complete' ? styles.adminKpiSelected : ''}`}
+          aria-label={`Filtrar por estado: Completos (${counts.complete})`}
+          aria-pressed={filter === 'complete'}
+          disabled={!props.rosterAvailable}
+          onClick={() => setFilter(filter === 'complete' ? 'all' : 'complete')}
+        >
+          <span>Completos</span><strong>{props.rosterAvailable ? counts.complete : '—'}<small> / {props.rosterAvailable ? teamCount : '—'}</small></strong>
+        </button>
+        <button
+          type="button"
+          className={`${styles.adminKpi} ${styles.adminKpiFilter} ${styles.kpiWarning} ${filter === 'incomplete' ? styles.adminKpiSelected : ''}`}
+          aria-label={`Filtrar por estado: Incompletos (${counts.incomplete})`}
+          aria-pressed={filter === 'incomplete'}
+          disabled={!props.rosterAvailable}
+          onClick={() => setFilter(filter === 'incomplete' ? 'all' : 'incomplete')}
+        >
+          <span>Incompletos</span><strong>{props.rosterAvailable ? counts.incomplete : '—'}</strong>
+        </button>
+        <button
+          type="button"
+          className={`${styles.adminKpi} ${styles.adminKpiFilter} ${styles.kpiError} ${filter === 'missing' ? styles.adminKpiSelected : ''}`}
+          aria-label={`Filtrar por estado: Sin registro (${counts.missing})`}
+          aria-pressed={filter === 'missing'}
+          disabled={!props.rosterAvailable}
+          onClick={() => setFilter(filter === 'missing' ? 'all' : 'missing')}
+        >
+          <span>Sin registro</span><strong>{props.rosterAvailable ? counts.missing : '—'}</strong>
+        </button>
         <article className={styles.adminKpi}>
           <span>Horas registradas</span>
           <strong>{formatHours(props.summary.hours)}<small> / {props.summary.expectedHours ? `${formatHours(props.summary.expectedHours)} h` : '—'}</small></strong>
@@ -160,19 +180,25 @@ export default function AdminDayReview(props: IAdminDayReviewProps): React.React
           onChange={(_, value) => props.onSearchChange(value || '')}
           onClear={() => props.onSearchChange('')}
         />
-        {workday && props.rosterAvailable && <div className={styles.adminFilterChips} role="group" aria-label="Filtrar por estado">
-          {([
-            ['all', 'Todos'], ['missing', 'Sin registro'], ['incomplete', 'Incompletos'], ['complete', 'Completos']
-          ] as Array<[DayFilter, string]>).map(([key, label]) => (
-            <DefaultButton
-              key={key}
-              className={`${styles.adminFilterChip} ${filter === key ? styles.adminFilterActive : ''}`}
-              text={`${label} ${key === 'all' ? counts.all : counts[key]}`}
-              aria-pressed={filter === key}
-              onClick={() => setFilter(key)}
-            />
-          ))}
-        </div>}
+        <div className={styles.adminFilterActions}>
+          {workday && filter !== 'all' && (
+            <>
+              <span className={styles.adminActiveFilter}>Filtro: {filterLabels[filter]}</span>
+              <button type="button" className={styles.adminClearFilter} onClick={() => setFilter('all')}>Ver todos</button>
+            </>
+          )}
+          <DefaultButton
+            text="Descargar"
+            iconProps={{ iconName: 'Download' }}
+            menuProps={{
+              ariaLabel: 'Opciones de descarga',
+              items: [
+                { key: 'activities', text: 'Actividades CSV', onClick: props.onExportActivities },
+                { key: 'summary', text: 'Resumen CSV', disabled: !props.rosterAvailable, onClick: props.onExportSummary }
+              ]
+            }}
+          />
+        </div>
       </div>
 
       {rows.length === 0 ? (

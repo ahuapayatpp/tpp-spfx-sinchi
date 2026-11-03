@@ -61,12 +61,6 @@
   }
 }
 
-.adminExportActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .adminKpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -109,8 +103,26 @@
 .kpiWarning { border-color: colors.$yellow-200; }
 .kpiError { border-color: colors.$red-200; }
 
+.adminKpiFilter {
+  appearance: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { border-color: colors.$primary-500; }
+  &:focus-visible { outline: 2px solid colors.$theme-primary; outline-offset: 2px; }
+  &:disabled { cursor: not-allowed; opacity: .7; }
+}
+
+.adminKpiSelected {
+  border-color: colors.$primary-500;
+  background: colors.$primary-50;
+  box-shadow: inset 0 0 0 1px colors.$primary-500;
+}
+
 .adminFilters {
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
 }
 
@@ -121,12 +133,31 @@
   border-radius: 4px;
 }
 
-.adminFilterChips {
+.adminFilterActions {
   display: flex;
   min-width: 0;
-  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+}
+
+.adminActiveFilter {
+  color: colors.$muted;
+  font-size: 13px;
+}
+
+.adminClearFilter {
+  padding: 4px 0;
+  border: 0;
+  color: colors.$primary-800;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+  &:focus-visible { outline: 2px solid colors.$theme-primary; outline-offset: 2px; }
 }
 
 .adminFilterChip {
@@ -136,12 +167,6 @@
   background: colors.$white;
 
   &:hover { border-color: colors.$surface-400; }
-}
-
-.adminFilterActive {
-  border-color: colors.$primary-500;
-  color: colors.$primary-800;
-  background: colors.$primary-50;
 }
 
 .adminDayTableWrap,
@@ -457,8 +482,9 @@
   .adminKpis { gap: 8px; }
   .adminKpi { min-height: 84px; padding: 12px; }
   .adminKpi strong { font-size: 20px; }
-  .adminFilters { flex-direction: column; }
-  .adminSearch { width: 100%; }
+  .adminFilters { flex-direction: row; }
+  .adminSearch { width: min(100%, 280px); flex: 1 1 220px; }
+  .adminFilterActions { flex: 1 1 220px; }
   .adminDayTableWrap,
   .adminMatrixWrap { display: none; }
   .adminDayCards,
