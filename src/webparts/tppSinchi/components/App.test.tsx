@@ -47,6 +47,7 @@ import type { IActivityService } from '../../../services/activities/activityServ
 import type { IAccessService } from '../../../services/access/accessTypes';
 import type { ITeamActivityRecord } from '../../../services/activities/activityTypes';
 import type { ITeamMember } from '../../../services/collaborators/collaboratorTypes';
+import { getLimaDateOnly } from '../../../services/activities/activityDate';
 import type { ITppSinchiProps } from './ITppSinchiProps';
 import App from './App';
 
@@ -160,7 +161,7 @@ describe('TppSinchi navigation', () => {
 
       const navigation = container.querySelector('nav[aria-label="Navegación del portal"]');
       expect(navigation?.textContent).toContain('Inicio');
-      expect(navigation?.textContent).toContain('Actividades');
+      expect(navigation?.textContent).toContain('Mis actividades');
       expect(navigation?.textContent).not.toContain('Solicitudes');
       expect(navigation?.textContent).not.toContain('Calendario');
     } finally {
@@ -222,7 +223,7 @@ describe('TppSinchi navigation', () => {
       });
 
       expect(activityService.createActivity).toHaveBeenCalledWith({
-        date: savedActivity.date,
+        date: '2025-01-15',
         responsibleUser: savedActivity.responsibleUser,
         activity: savedActivity.activity,
         process: savedActivity.process,
@@ -296,7 +297,92 @@ describe('TppSinchi role access', () => {
     }
   });
 
-  it('shows the team review inside Activities for administrators and keeps Administration', async () => {
+  it('lets administrators register and review their own activities', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const savedActivity: IActivityRecord = {
+      id: 42,
+      date: getLimaDateOnly(),
+      responsibleUser: 'Alex User',
+      activity: 'Actividad de prueba',
+      process: 'Proyecto',
+      project: 'Portal TI',
+      hu: 'S/HU',
+      hours: 1
+    };
+    const activityService = createActivityService();
+    activityService.getActivities = jest.fn(() => Promise.resolve([savedActivity]));
+    activityService.createActivity = jest.fn(() => Promise.resolve());
+    const props: ITppSinchiProps = {
+      description: '',
+      isDarkTheme: false,
+      environmentMessage: '',
+      userDisplayName: 'Alex User',
+      resourcesService: { getResources: () => Promise.resolve([]) },
+      activityService,
+      accessService: createAccessService(true),
+      collaboratorService: createCollaboratorService()
+    };
+
+    try {
+      await renderApp(props, container);
+      const activitiesLink = Array.from(container.querySelectorAll('a'))
+        .find(link => link.textContent?.trim() === 'Mis actividades');
+      expect(activitiesLink).toBeDefined();
+      expect(container.querySelector('nav')?.textContent).toContain('Revisión de actividades');
+      expect(container.querySelector('nav')?.textContent).toContain('Administración');
+
+      await act(async () => {
+        activitiesLink?.click();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(container.querySelector('#activitiesTitle')?.textContent).toBe('Mis actividades');
+      expect(container.textContent).toContain('Actividad de prueba');
+      expect(activityService.getActivities).toHaveBeenCalledWith(
+        'Alex User',
+        expect.any(String),
+        expect.any(String)
+      );
+      expect(container.textContent).toContain('Registrar actividad');
+
+      const homeLink = Array.from(container.querySelectorAll('a'))
+        .find(link => link.textContent?.trim() === 'Inicio');
+      act(() => { homeLink?.click(); });
+      const registerButton = Array.from(container.querySelectorAll('button'))
+        .find(button => button.textContent?.includes('Agregar'));
+      expect(registerButton).toBeDefined();
+      await act(async () => {
+        registerButton?.click();
+        await Promise.resolve();
+      });
+      const saveButton = Array.from(container.querySelectorAll('button'))
+        .find(button => button.textContent?.trim() === 'Guardar actividad de prueba');
+      expect(saveButton).toBeDefined();
+      await act(async () => {
+        saveButton?.click();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(activityService.createActivity).toHaveBeenCalledWith({
+        date: '2025-01-15',
+        responsibleUser: savedActivity.responsibleUser,
+        activity: savedActivity.activity,
+        process: savedActivity.process,
+        project: savedActivity.project,
+        hu: savedActivity.hu,
+        hours: savedActivity.hours
+      });
+      expect(container.querySelector('#activitiesTitle')?.textContent).toBe('Mis actividades');
+    } finally {
+      act(() => { ReactDOM.unmountComponentAtNode(container); });
+      container.remove();
+    }
+  });
+
+  it('shows a separate team review page to administrators', async () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const activityService = createActivityService();
@@ -314,9 +400,9 @@ describe('TppSinchi role access', () => {
 
     try {
       await renderApp(props, container);
-      const activitiesLink = Array.from(container.querySelectorAll('a'))
-        .find(link => link.textContent?.trim() === 'Actividades');
-      act(() => { activitiesLink?.click(); });
+      const reviewLink = Array.from(container.querySelectorAll('a'))
+        .find(link => link.textContent?.trim() === 'Revisión de actividades');
+      act(() => { reviewLink?.click(); });
       await act(async () => {
         await Promise.resolve();
         await Promise.resolve();
@@ -330,15 +416,7 @@ describe('TppSinchi role access', () => {
       expect(container.querySelector('nav')?.textContent).toContain('Administración');
       expect(activityService.getTeamActivities).toHaveBeenCalled();
       expect(activityService.getActivities).not.toHaveBeenCalled();
-
-      const monthButton = Array.from(container.querySelectorAll('button'))
-        .find(button => button.textContent?.trim() === 'Mes');
-      act(() => { monthButton?.click(); });
-      expect(container.querySelector('#adminMonthHeading')?.textContent).toBe('Cumplimiento por persona');
-      const monthCell = container.querySelector<HTMLButtonElement>('button[aria-label^="Team User,"]');
-      expect(monthCell).not.toBeNull();
-      act(() => { monthCell?.click(); });
-      expect(document.body.textContent).toContain('Calendario');
+      expect(container.querySelector('a[aria-current="page"]')?.textContent?.trim()).toBe('Revisión de actividades');
     } finally {
       act(() => { ReactDOM.unmountComponentAtNode(container); });
       container.remove();
@@ -364,6 +442,7 @@ describe('TppSinchi role access', () => {
 
       const navigation = container.querySelector('nav[aria-label="Navegación del portal"]');
       expect(navigation?.textContent).not.toContain('Administración');
+      expect(navigation?.textContent).not.toContain('Revisión de actividades');
       expect(container.querySelector('#adminContent')).toBeNull();
     } finally {
       act(() => {
@@ -391,11 +470,9 @@ describe('TppSinchi role access', () => {
       await renderApp(props, container);
 
       const adminLink = Array.from(container.querySelectorAll('a'))
-        .find(link => link.textContent?.trim() === 'Administración');
-      act(() => {
-        adminLink?.click();
-      });
-      expect(container.querySelector('#adminContent')?.textContent).toBe('admin');
+        .find(link => link.textContent?.trim() === 'Revisión de actividades');
+      act(() => { adminLink?.click(); });
+      expect(container.querySelector('#adminActivitiesTitle')?.textContent).toBe('Revisión de actividades');
 
       await act(async () => {
         ReactDOM.render(<App {...props} accessService={createAccessService()} />, container);
@@ -406,6 +483,7 @@ describe('TppSinchi role access', () => {
 
       const navigation = container.querySelector('nav[aria-label="Navegación del portal"]');
       expect(navigation?.textContent).not.toContain('Administración');
+      expect(navigation?.textContent).not.toContain('Revisión de actividades');
       expect(container.querySelector('#adminContent')).toBeNull();
       expect(container.textContent).toContain('Hola, Alex User');
     } finally {

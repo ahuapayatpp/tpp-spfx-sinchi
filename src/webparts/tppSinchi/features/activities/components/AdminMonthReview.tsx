@@ -94,12 +94,12 @@ export default function AdminMonthReview(props: IAdminMonthReviewProps): React.R
 
   return (
     <section className={styles.adminReviewSection} aria-labelledby="adminMonthHeading">
-      <div className={styles.adminSectionHeading}>
+      {/* <div className={styles.adminSectionHeading}>
         <div>
           <h2 id="adminMonthHeading">Cumplimiento por persona</h2>
           <p>Selecciona un día de la matriz para consultar sus actividades.</p>
         </div>
-      </div>
+      </div> */}
 
       <div className={styles.adminKpis} aria-label={`Resumen de ${props.date.slice(0, 7)}`}>
         <button
@@ -153,12 +153,12 @@ export default function AdminMonthReview(props: IAdminMonthReviewProps): React.R
               ]
             }}
           />
-          <DefaultButton
+          {/* <DefaultButton
             className={styles.adminFilterChip}
             text="Ordenar por pendientes"
             iconProps={{ iconName: sortDescending ? 'SortDown' : 'SortUp' }}
             onClick={() => setSortDescending(!sortDescending)}
-          />
+          /> */}
         </div>
       </div>
 

@@ -127,12 +127,12 @@ export default function AdminDayReview(props: IAdminDayReviewProps): React.React
           {formatLongDate(props.date)} es fin de semana; no se exige un mínimo de horas.
         </MessageBar>
       )}
-      <div className={styles.adminSectionHeading}>
+      {/* <div className={styles.adminSectionHeading}>
         <div>
           <h2 id="adminDayHeading">Equipo del día</h2>
           <p>Revisa el avance y abre el detalle para consultar sus actividades.</p>
         </div>
-      </div>
+      </div> */}
 
       {workday && <div className={styles.adminKpis} aria-label="Resumen de la jornada">
         <button

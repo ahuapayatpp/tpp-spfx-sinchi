@@ -91,7 +91,7 @@ interface IResourceGroup {
 }
 
 interface ITppSinchiState {
-  currentPage: 'home' | 'activities' | 'admin';
+  currentPage: 'home' | 'activities' | 'adminActivities' | 'admin';
   access?: IUserAccess;
   accessStatus: 'loading' | 'error' | 'ready';
   accessError: string;
@@ -206,12 +206,12 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
     if (previousProps.activityService !== this.props.activityService) {
       this._loadActivityCatalogs();
       this._loadDailyHours();
-      if (this.state.currentPage === 'activities' && !this._isCurrentUserAdmin()) {
+      if (this.state.currentPage === 'activities') {
         this._loadActivities();
       }
     } else if (previousProps.userDisplayName !== this.props.userDisplayName) {
       this._loadDailyHours();
-      if (this.state.currentPage === 'activities' && !this._isCurrentUserAdmin()) {
+      if (this.state.currentPage === 'activities') {
         this._loadActivities();
       }
     }
@@ -231,11 +231,11 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
               access,
               accessStatus: 'ready',
               accessError: '',
-              currentPage: currentState.currentPage === 'admin' && !isAdmin
+              currentPage: (currentState.currentPage === 'admin' || currentState.currentPage === 'adminActivities') && !isAdmin
                 ? 'home'
                 : currentState.currentPage
             }), () => {
-              if (this.state.currentPage === 'activities' && !isAdmin) {
+              if (this.state.currentPage === 'activities') {
                 this._loadActivities();
               }
             });
@@ -248,7 +248,9 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
               access: undefined,
               accessStatus: 'error',
               accessError: error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
-              currentPage: currentState.currentPage === 'admin' ? 'home' : currentState.currentPage
+              currentPage: currentState.currentPage === 'admin' || currentState.currentPage === 'adminActivities'
+                ? 'home'
+                : currentState.currentPage
             }), () => {
               if (this.state.currentPage === 'activities') {
                 this._loadActivities();
@@ -362,18 +364,25 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
   };
 
   private _showActivities = (event: React.MouseEvent<HTMLElement>): void => {
-      event.preventDefault();
-      const today = getLimaDateOnly();
-      this.setState({
-        currentPage: 'activities',
-        activityDate: today,
-        activityView: 'day',
-        activityNotice: ''
-      }, () => {
-        if (this.state.accessStatus !== 'loading' && !this._isCurrentUserAdmin()) {
-          this._loadActivities(today);
-        }
-      });
+    event.preventDefault();
+    const today = getLimaDateOnly();
+    this.setState({
+      currentPage: 'activities',
+      activityDate: today,
+      activityView: 'day',
+      activityNotice: ''
+    }, () => {
+      if (this.state.accessStatus !== 'loading') {
+        this._loadActivities(today);
+      }
+    });
+  };
+
+  private _showAdminActivities = (event: React.MouseEvent<HTMLElement>): void => {
+    event.preventDefault();
+    if (this.state.accessStatus === 'ready' && this.state.access?.isAdmin === true) {
+      this.setState({ currentPage: 'adminActivities' });
+    }
   };
 
   private _showHome = (event: React.MouseEvent<HTMLElement>): void => {
@@ -399,8 +408,7 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
         activityDate: date,
         activityView: view || this.state.activityView
       }, () => {
-        if (currentRange.from !== nextRange.from && this.state.currentPage === 'activities' &&
-            !this._isCurrentUserAdmin()) {
+        if (currentRange.from !== nextRange.from && this.state.currentPage === 'activities') {
           this._loadActivities(date);
         }
       });
@@ -653,8 +661,18 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
               aria-current={this.state.currentPage === 'activities' ? 'page' : undefined}
               onClick={this._showActivities}
             >
-              Actividades
+              Mis actividades
             </Link>
+            {isAdmin && (
+              <Link
+                className={`${styles.navigationLink} ${this.state.currentPage === 'adminActivities' ? styles.activeNavigationLink : ''}`}
+                href="#"
+                aria-current={this.state.currentPage === 'adminActivities' ? 'page' : undefined}
+                onClick={this._showAdminActivities}
+              >
+                Revisión de actividades
+              </Link>
+            )}
             {isAdmin && (
               <Link
                 className={`${styles.navigationLink} ${this.state.currentPage === 'admin' ? styles.activeNavigationLink : ''}`}
@@ -668,11 +686,7 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
           </nav>
 
           <main className={styles.content}>
-            {this.state.currentPage === 'admin' && isAdmin ? (
-              <AdminPage />
-            ) : this.state.currentPage === 'activities' && this.state.accessStatus === 'loading' ? (
-              <LoadingState label="Verificando tu acceso..." />
-            ) : this.state.currentPage === 'activities' && isAdmin ? (
+            {this.state.currentPage === 'adminActivities' && isAdmin ? (
               <AdminActivitiesPage
                 activityDate={this.state.activityDate}
                 activityView={this.state.activityView}
@@ -682,6 +696,10 @@ export default class App extends React.Component<ITppSinchiProps, ITppSinchiStat
                 onChangeDate={this._changeActivityDate}
                 onChangeView={activityView => this.setState({ activityView })}
               />
+            ) : this.state.currentPage === 'admin' && isAdmin ? (
+              <AdminPage />
+            ) : this.state.currentPage === 'activities' && this.state.accessStatus === 'loading' ? (
+              <LoadingState label="Verificando tu acceso..." />
             ) : this.state.currentPage === 'activities' ? this._renderActivitiesPage() : (
               <>
             <header className={styles.welcome}>

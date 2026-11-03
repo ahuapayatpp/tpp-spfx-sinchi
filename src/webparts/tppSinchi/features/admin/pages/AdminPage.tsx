@@ -7,7 +7,7 @@ export default function AdminPage(): React.ReactElement {
       <header className={styles.activitiesHeader}>
         <div>
           <h1 id="adminTitle">Administración</h1>
-          <p>Esta vista estará disponible solo para administradores.</p>
+          <p>Verificar que datos se pueden parametrizar para el administrador.</p>
         </div>
       </header>
       <p id="adminContent">admin</p>
