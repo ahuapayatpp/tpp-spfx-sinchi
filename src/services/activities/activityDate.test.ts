@@ -1,4 +1,4 @@
-import { getLimaDateOnly, getLimaDateStartUtc } from './activityDate';
+import { getLimaDateOnly, getLimaDateStartUtc, getSharePointDateValueUtc } from './activityDate';
 
 describe('activityDate', () => {
   it('uses the Lima calendar day when determining today', () => {
@@ -9,6 +9,11 @@ describe('activityDate', () => {
   it('serializes the selected calendar day to Lima midnight in UTC', () => {
     expect(getLimaDateStartUtc('2026-10-30')).toBe('2026-10-30T05:00:00.000Z');
     expect(getLimaDateStartUtc('2026-10-30', 1)).toBe('2026-10-31T05:00:00.000Z');
+  });
+
+  it('serializes a saved calendar day at midday UTC to prevent SharePoint timezone rollover', () => {
+    expect(getSharePointDateValueUtc('2026-11-04')).toBe('2026-11-04T12:00:00.000Z');
+    expect(() => getSharePointDateValueUtc('2026-02-30')).toThrow('fecha');
   });
 
   it('rejects invalid date-only values', () => {

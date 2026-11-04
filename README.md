@@ -48,6 +48,16 @@ La revisión del equipo es de solo lectura y ofrece vistas de día y mes, búsqu
 
 > **Importante:** el rol de la app controla qué interfaz se muestra, pero no sustituye los permisos de SharePoint. La privacidad de “cada usuario ve solo sus actividades” requiere permisos por elemento y se implementará en una fase posterior.
 
+## Probar la app en Microsoft Teams
+
+La app Teams se genera desde `teams/manifest.json` y los íconos de `teams/`. Para probarla:
+
+1. Ejecuta `npm run build`. El paquete SPFx se genera en `sharepoint/solution/tpp-spfx-sinchi.sppkg`.
+2. Despliega el `.sppkg` en el catálogo de aplicaciones de SharePoint y habilítalo para toda la organización. El web part y sus recursos deben estar desplegados en SharePoint antes de abrir la app en Teams.
+3. Carga `teams/TeamsSPFxApp.zip` en Teams mediante **Aplicaciones > Administrar tus aplicaciones > Cargar una aplicación personalizada** (o la opción de carga disponible en tu organización). La carga de aplicaciones personalizadas debe estar habilitada por la política del tenant.
+
+El paquete Teams es una app personal de Teams, no un sitio autónomo: Teams carga el web part SPFx alojado en SharePoint. Para la prueba, la revisión del equipo puede mostrar información parcial hasta que un administrador apruebe `GroupMember.ReadBasic.All` en **Centro de administración de SharePoint > Más características > API access**. Los datos de SharePoint también requieren que quien prueba tenga acceso a las listas utilizadas.
+
 ## Applies to
 
 - [SharePoint Framework](https://aka.ms/spfx)

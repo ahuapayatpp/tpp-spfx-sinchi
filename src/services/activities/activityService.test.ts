@@ -117,7 +117,7 @@ describe('ActivityService', () => {
       field_4: 'tpp-web',
       field_5: 'HU-12345',
       field_7: 'Validar el formulario',
-      field_8: '2026-10-30T05:00:00.000Z',
+      field_8: '2026-10-30T12:00:00.000Z',
       field_9: 'Alex User',
       field_10: 0.25
     }]).query;
@@ -348,7 +348,7 @@ describe('ActivityService', () => {
       field_2: 'TPP UI CORE',
       field_5: 'HU-12345',
       field_7: 'Validar el formulario de actividades',
-      field_8: '2026-10-30T05:00:00.000Z',
+      field_8: '2026-10-30T12:00:00.000Z',
       field_9: 'Alex User',
       field_10: 1.5,
       field_4: 'tpp-web'

@@ -33,3 +33,12 @@ export function getLimaDateStartUtc(date: string, daysAfter: number = 0): string
   const [year, month, day] = date.split('-').map(Number);
   return new Date(Date.UTC(year, month - 1, day + daysAfter, LIMA_UTC_OFFSET_HOURS)).toISOString();
 }
+
+export function getSharePointDateValueUtc(date: string): string {
+  if (!isValidDateOnly(date)) {
+    throw new Error('La fecha para guardar la actividad no tiene un formato válido.');
+  }
+
+  const [year, month, day] = date.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12)).toISOString();
+}

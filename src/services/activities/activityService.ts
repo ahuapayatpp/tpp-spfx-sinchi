@@ -1,5 +1,5 @@
 import type { SPFI } from '@pnp/sp';
-import { getLimaDateOnly, getLimaDateStartUtc } from './activityDate';
+import { getLimaDateOnly, getLimaDateStartUtc, getSharePointDateValueUtc } from './activityDate';
 import { escapeODataString, getServerRelativeListUrl } from '../sharepoint/sharePointUrl';
 import type {
   IActivityCatalogs,
@@ -272,7 +272,7 @@ function createActivityPayload(activity: IActivityDraft): Record<string, string 
     [MODULE_FIELD]: activity.module ? activity.module.trim() : '',
     [HU_FIELD]: activity.hu.trim(),
     [ACTIVITY_FIELD]: activity.activity.trim(),
-    [DATE_FIELD]: getLimaDateStartUtc(activity.date),
+    [DATE_FIELD]: getSharePointDateValueUtc(activity.date),
     [RESOURCE_FIELD]: activity.responsibleUser.trim(),
     [HOURS_FIELD]: activity.hours
   };
